@@ -368,9 +368,14 @@
       window.UK01Log = (msg) => {
         if (!debugOn) return;
         try {
-          dbg.classList.remove('hidden');
           const line = (msg || '').toString().slice(0, 160);
+
+          // show on screen
+          dbg.classList.remove('hidden');
           dbg.textContent = line + "\n" + dbg.textContent;
+
+          // also send to server logs (for cases where screenshots are blocked)
+          try { window.clientSocket && window.clientSocket.emit && window.clientSocket.emit('client log', line); } catch (_) {}
         } catch (_) {}
       };
 

@@ -114,6 +114,14 @@ global.serverSocket = io;
 io.on('connection', function(client) {
   console.log('New player has connected: ' + client.id);
 
+  // Client-side debug logs (used when ?debug=1 and screenshots are blocked)
+  client.on('client log', (msg) => {
+    try {
+      const s = (msg || '').toString().slice(0, 400);
+      console.log('clientlog', client.id, s);
+    } catch (_) {}
+  });
+
   client.on('enter lobby', Lobby.onEnterLobby);
   client.on('leave lobby', Lobby.onLeaveLobby);
   client.on('create game', Lobby.onCreateGame);

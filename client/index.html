@@ -270,8 +270,9 @@
         });
       });
 
-      // Default show menu immediately
-      showMenu();
+      // Do NOT auto-show menu before Phaser finishes preloading.
+      // Menu will be shown by Phaser Menu state when ready.
+      hideMenu();
     })();
   </script>
 

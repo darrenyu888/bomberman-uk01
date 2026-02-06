@@ -63,6 +63,48 @@ app.get('/api/me', (req, res) => {
   }
 });
 
+app.get('/api/leaderboard', (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '20', 10) || 20));
+
+    // Read from JSON store
+    const fs = require('fs');
+    const path = require('path');
+    const dataPath = path.join(__dirname, 'data', 'users.json');
+    let data = { users: {}, stats: {} };
+    try {
+      data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    } catch (_) {}
+
+    const rows = Object.values(data.users || {}).map(u => {
+      const s = (data.stats && data.stats[u.id]) || { gamesPlayed: 0, wins: 0, losses: 0 };
+      const gamesPlayed = s.gamesPlayed || 0;
+      const wins = s.wins || 0;
+      const losses = s.losses || 0;
+      const winRate = gamesPlayed > 0 ? (wins / gamesPlayed) : 0;
+      return {
+        userId: u.id,
+        displayName: u.displayName || 'Player',
+        wins,
+        losses,
+        gamesPlayed,
+        winRate,
+      };
+    });
+
+    // Default sort: wins desc
+    rows.sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.gamesPlayed - a.gamesPlayed));
+
+    res.json({
+      sort: 'wins',
+      limit,
+      rows: rows.slice(0, limit)
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'LEADERBOARD_FAILED' });
+  }
+});
+
 app.post('/api/profile', (req, res) => {
   try {
     const cookieHeader = req.headers.cookie || '';
@@ -85,6 +127,46 @@ app.post('/api/profile', (req, res) => {
   } catch (e) {
     res.status(400).json({ error: 'BAD_REQUEST' });
   }
+});
+
+// --- Leaderboard page (simple HTML) ---
+app.get('/leaderboard', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.end(`<!doctype html>
+<html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leaderboard</title>
+<style>
+  body{font-family:Arial,sans-serif;background:#0b0b0f;color:#fff;margin:0;padding:18px}
+  h1{margin:0 0 12px 0;font-size:20px}
+  .hint{opacity:.75;margin-bottom:14px;font-size:13px}
+  table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden}
+  th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px}
+  th{opacity:.85}
+  tr:last-child td{border-bottom:none}
+  .rank{width:44px;opacity:.9}
+  .num{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<h1>Leaderboard（按勝場）</h1>
+<div class="hint">資料來源：登入玩家戰績（wins/losses/gamesPlayed）</div>
+<table id="t"><thead><tr><th class="rank">#</th><th>玩家</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Games</th></tr></thead><tbody></tbody></table>
+<script>
+  fetch('/api/leaderboard?limit=50').then(r=>r.json()).then(data=>{
+    const tb=document.querySelector('#t tbody');
+    (data.rows||[]).forEach((r,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = '<td class="rank">' + (i+1) + '</td>'
+        + '<td>' + (r.displayName || '') + '</td>'
+        + '<td class="num">' + (r.wins||0) + '</td>'
+        + '<td class="num">' + (r.losses||0) + '</td>'
+        + '<td class="num">' + (r.gamesPlayed||0) + '</td>';
+      tb.appendChild(tr);
+    })
+  }).catch(()=>{});
+</script>
+</body></html>`);
 });
 
 // --- Static ---

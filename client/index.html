@@ -440,6 +440,10 @@
           if (g && g.sound && g.sound.unlock) {
             g.sound.unlock();
           }
+          // If BGM exists but didn't start (mobile autoplay lock), start it now.
+          if (g && g._bgm && g._bgm.play && !g._bgm.isPlaying) {
+            g._bgm.play();
+          }
         } catch(_) {}
       }
 

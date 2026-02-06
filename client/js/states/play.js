@@ -40,13 +40,16 @@ class Play extends Phaser.State {
     this.sfxDeath = this.game.add.audio('sfx_death');
 
     // Background music (loop)
+    // On mobile, playback may be blocked until a user gesture; we create the sound here
+    // and (re)start it on first joystick tap via tryUnlockAudio() in index.html.
     try {
       if (this.game._bgm && this.game._bgm.stop) {
         this.game._bgm.stop();
       }
       this.game._bgm = this.game.add.audio('bgm_main');
       this.game._bgm.loop = true;
-      this.game._bgm.volume = 0.18;
+      this.game._bgm.volume = 0.28;
+      // attempt to play (may fail silently if locked)
       this.game._bgm.play();
     } catch (_) {}
 

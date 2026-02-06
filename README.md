@@ -50,12 +50,60 @@ Note: To play the game, you should open the browser in two separate windows. The
 ## Setup:
 The game requires Node and Yarn (npm) package manager. Make sure that you already have both installed on your system before trying to launch it.
 
-Steps:
+Steps (upstream original):
 1. Clone the repository.
 2. Run `yarn install` inside a newly created directory.
 3. Start the server with the command `yarn run server` ( defined in the `package.json` file ). This will launch `webpack` in your development environment and then start the `node` server.
 4. Check out the game at [http://localhost:3000](http://localhost:3000)
 5. Enjoy!
+
+### UK01 fork: 本機部署方式（建議 / npm）
+> 本段是針對本 fork 目前的安裝與部署方式（已加入 `package-lock.json`）。
+
+#### 方式 A：直接在本機跑（開發/測試）
+```bash
+git clone https://github.com/darrenyu888/bomberman-uk01.git
+cd bomberman-uk01
+
+# 安裝依賴（建議用 npm lockfile）
+npm ci
+
+# Build（production bundle）
+npm run build:prod
+
+# 啟動（預設 PORT=3000）
+PORT=3000 npm start
+
+# 瀏覽器開啟
+# http://localhost:3000
+```
+
+#### 方式 B：systemd 服務化（Linux）
+範例 service（本機環境曾使用）：
+- `/etc/systemd/system/bomberman-web.service`
+- `WorkingDirectory=/root/clawd/bomberman-web`
+- `ExecStart=/usr/bin/node server/app.js`
+- `Environment=PORT=3000`
+
+常用指令：
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now bomberman-web
+sudo systemctl status bomberman-web
+sudo journalctl -u bomberman-web -f
+```
+
+#### （可選）方式 C：Nginx 反向代理 + WebSocket（Socket.IO）
+如果要用網域對外服務，Nginx 需要支援 WebSocket upgrade。
+範例設定（本機環境曾使用，檔名可能為 `bomberman.conf.disabled`，啟用時請改成 `.conf`）：
+- `/etc/nginx/conf.d/bomberman.conf`
+- 反向代理到 `127.0.0.1:3000`
+
+啟用/測試：
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
 
 ## Notes:
 You can use my code as a boilerplate if you want, but I would suggest you change the tile sizes. I've picked tiles that are 35x35 pixels, but tiles that are 32x32 would be more ideal. All free templates are based on this tile size, and it is also handily divisible by 2.

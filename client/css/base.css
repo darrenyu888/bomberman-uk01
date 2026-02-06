@@ -127,6 +127,7 @@ body {
 }
 #auth-overlay button,
 #auth-overlay input,
+#auth-overlay select,
 #auth-overlay #google-render {
   pointer-events: auto;
 }

@@ -70,7 +70,7 @@ export default class EnemyPlayer extends Phaser.Sprite {
         if (!key) return;
         const spr = this.game.add.sprite(x, y, key);
         spr.anchor.setTo(0.5);
-        spr.scale.setTo(0.5);
+        spr.scale.setTo(0.25);
         spr.alpha = alpha;
         this.addChild(spr);
         this._cosmetics.push(spr);

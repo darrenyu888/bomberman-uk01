@@ -58,6 +58,27 @@ PORT=3000 npm start
 
 ---
 
+## AI bots（用法 / 參數）
+
+### UI 操作（建議）
+進入「Pending Game / 等待房間」畫面後，可以直接在畫面上設定：
+- **AI 數量**：`AI: N`（用 `+` / `-` 調整）
+  - 目前 client 端會把數量限制在 **0..3**（對應 max players=4 的情境）
+- **AI 難度**：`Easy / Normal / Hard`
+
+### 伺服器端行為（摘要）
+- 進入 pending game 時，伺服器會嘗試 **自動補滿 bot**（未滿房就補到接近滿房）。
+- 伺服器端 bot id 會以 `bot:` 作為前綴（例如 `bot:<gameId>:...`）。
+- 若 pending game 內「只剩 bots」，最後一個真人離開時會自動清掉 bots 並刪除該 pending game。
+
+### Socket.IO 事件（給自製前端/測試用）
+在進入 pending game 後可透過以下事件調整：
+- `set ai count`：`{ count: number }`
+  - 伺服器端會再做一次 clamp：`0..(max_players-1)`
+- `set ai difficulty`：`{ difficulty: 'easy' | 'normal' | 'hard' }`
+
+---
+
 ## 部署（UK01 fork：Linux / systemd + Nginx）
 
 ### 方式 A：systemd 服務化

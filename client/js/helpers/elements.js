@@ -91,7 +91,8 @@ export class PlayerSlots extends Phaser.Group {
 
       if (_player) {
         slotBox = new Phaser.Image(this.game, xOffset, y, asset_player+_player.skin)
-        slotName = new Phaser.Text(this.game, slotBox.width/2, slotBox.height + 15, _player.skin, style);
+        const label = _player.displayName || _player.skin;
+        slotName = new Phaser.Text(this.game, slotBox.width/2, slotBox.height + 15, label, style);
         slotName.anchor.setTo(0.5);
         slotBox.addChild(slotName);
       } else {

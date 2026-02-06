@@ -3,7 +3,7 @@ import { Text } from '../helpers/elements';
 
 export default class EnemyPlayer extends Phaser.Sprite {
 
-  constructor({ game, id, spawn, skin }) {
+  constructor({ game, id, spawn, skin, displayName, avatarParts }) {
     super(game, spawn.x, spawn.y, 'bomberman_' + skin);
 
     this.game = game
@@ -21,7 +21,10 @@ export default class EnemyPlayer extends Phaser.Sprite {
     this.animations.add('right', [6, 7, 8], 15, true);
     this.animations.add('left', [3, 4, 5], 15, true);
 
-    this.defineSelf(skin)
+    this.defineSelf(displayName || skin)
+
+    // cosmetics for enemies too
+    this.applyAvatarParts(avatarParts || null);
   }
 
   update () {
@@ -53,6 +56,33 @@ export default class EnemyPlayer extends Phaser.Sprite {
 
     this.animations.play(face)
     this.currentPosition = newPosition;
+  }
+
+  applyAvatarParts(parts) {
+    try {
+      if (this._cosmetics) {
+        for (const s of this._cosmetics) { try { s.destroy(); } catch (_) {} }
+      }
+      this._cosmetics = [];
+      if (!parts) return;
+
+      const add = (key, x, y, alpha=1) => {
+        if (!key) return;
+        const spr = this.game.add.sprite(x, y, key);
+        spr.anchor.setTo(0.5);
+        spr.alpha = alpha;
+        this.addChild(spr);
+        this._cosmetics.push(spr);
+      };
+
+      const hair = parts.hair ? ('cosmetic_' + parts.hair) : null;
+      const outfit = parts.outfit ? ('cosmetic_' + parts.outfit) : null;
+      const hat = parts.hat ? ('cosmetic_' + parts.hat) : null;
+
+      add(outfit, 16, 18, 0.95);
+      add(hair,   16, 10, 0.98);
+      add(hat,    16, 6,  0.98);
+    } catch (_) {}
   }
 
   defineSelf(name) {

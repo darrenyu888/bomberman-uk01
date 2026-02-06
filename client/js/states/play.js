@@ -167,6 +167,7 @@ class Play extends Phaser.State {
         id:     player.id,
         spawn:  player.spawn,
         skin:   player.skin,
+        displayName: player.displayName || player.skin,
         avatarParts: player.avatarParts || null,
       }
 

@@ -9,7 +9,7 @@ import { SpoilNotification, Text } from '../helpers/elements';
 
 export default class Player extends Phaser.Sprite {
 
-  constructor({ game, id, spawn, skin, avatarParts }) {
+  constructor({ game, id, spawn, skin, displayName, avatarParts }) {
     super(game, spawn.x, spawn.y, 'bomberman_' + skin);
 
     this.game = game;
@@ -50,7 +50,7 @@ export default class Player extends Phaser.Sprite {
     this.info = new Info({ game: this.game, player: this });
 
     this.defineKeyboard()
-    this.defineSelf(skin)
+    this.defineSelf(displayName || skin)
 
     // Paper-doll cosmetics (hair/outfit/hat): simple layered images above base sprite
     this.avatarParts = avatarParts || null;

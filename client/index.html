@@ -26,6 +26,7 @@
       const toggleBtn = document.getElementById('auth-toggle');
       const audioBtn = document.getElementById('audio-toggle');
 
+      const characterSel = document.getElementById('avatar-character');
       const hairSel = document.getElementById('avatar-hair');
       const outfitSel = document.getElementById('avatar-outfit');
       const hatSel = document.getElementById('avatar-hat');
@@ -72,6 +73,7 @@
           avatarSaveBtn.style.display = 'inline-block';
 
           const parts = (data.user.avatarParts) || {};
+          if (characterSel) characterSel.value = parts.character || '';
           hairSel.value = parts.hair || '';
           outfitSel.value = parts.outfit || '';
           hatSel.value = parts.hat || '';
@@ -104,6 +106,7 @@
 
       function updatePreview(){
         if (!previewEl) return;
+        const character = (characterSel && characterSel.value) ? characterSel.value : '';
         const hair = hairSel.value || '';
         const outfit = outfitSel.value || '';
         const hat = hatSel.value || '';
@@ -116,13 +119,32 @@
           // Served from /images/game/cosmetics/*.png
           el.style.backgroundImage = `url(/images/game/cosmetics/${key}.png?v=20260206_14)`;
         };
-        setBg('.av-hair', hair);
-        setBg('.av-outfit', outfit);
-        setBg('.av-hat', hat);
-        setBg('.av-face', face);
-        setBg('.av-pattern', pattern);
+
+        const charToFile = {
+          'char_1': 'characters/char_1_pink_happy.png',
+          'char_2': 'characters/char_2_pink_cry.png',
+          'char_3': 'characters/char_3_yellow_happy.png',
+          'char_4': 'characters/char_4_yellow_cry.png',
+          'char_5': 'characters/char_5_blue_happy.png',
+          'char_6': 'characters/char_6_blue_cry.png',
+          'char_7': 'characters/char_7_mint_happy.png',
+          'char_8': 'characters/char_8_mint_cry.png',
+        };
+        // base character preview
+        const baseLayer = previewEl.querySelector('.av-base');
+        if (baseLayer) {
+          if (!character || character === '') {
+            baseLayer.style.backgroundImage = 'url(/images/game/cosmetics/base.png?v=20260206_14)';
+          } else {
+            const f = charToFile[character];
+            if (f) baseLayer.style.backgroundImage = `url(/images/game/cosmetics/${f}?v=20260206_14)`;
+          }
+        }
+
+        // legacy layers no-op (hidden UI)
       }
 
+      if (characterSel) characterSel.addEventListener('change', updatePreview);
       hairSel.addEventListener('change', updatePreview);
       outfitSel.addEventListener('change', updatePreview);
       hatSel.addEventListener('change', updatePreview);
@@ -132,11 +154,7 @@
       avatarSaveBtn.addEventListener('click', async () => {
         const displayName = (nameEl.value || '').trim();
         const avatarParts = {
-          hair: (hairSel.value || ''),
-          outfit: (outfitSel.value || ''),
-          hat: (hatSel.value || ''),
-          face: (faceSel ? (faceSel.value || '') : ''),
-          pattern: (patternSel ? (patternSel.value || '') : ''),
+          character: (characterSel ? (characterSel.value || '') : ''),
         };
 
         const r = await fetch('/api/profile', {
@@ -236,68 +254,28 @@
       <div class='auth-row'>
         <div id='avatar-preview' class='avatar-preview' title='預覽（示意）'>
           <div class='av-layer av-base' style="background-image:url(/images/game/cosmetics/base.png?v=20260206_14)"></div>
-          <div class='av-layer av-outfit'></div>
-          <div class='av-layer av-pattern'></div>
-          <div class='av-layer av-face'></div>
-          <div class='av-layer av-hair'></div>
-          <div class='av-layer av-hat'></div>
         </div>
-        <select id='avatar-hair'>
-          <option value=''>Hair: (none)</option>
-          <option value='hair_1'>Hair 1</option>
-          <option value='hair_2'>Hair 2</option>
-          <option value='hair_3'>Hair 3</option>
-          <option value='hair_4'>Hair 4</option>
-          <option value='hair_5'>Hair 5</option>
-          <option value='hair_6'>Hair 6</option>
-          <option value='hair_7'>Hair 7</option>
-          <option value='hair_8'>Hair 8</option>
-          <option value='hair_9'>Hair 9</option>
-          <option value='hair_10'>Hair 10</option>
+
+        <select id='avatar-character'>
+          <option value=''>角色：預設</option>
+          <option value='char_1'>粉兔（開心）</option>
+          <option value='char_2'>粉兔（哭哭）</option>
+          <option value='char_3'>黃兔（開心）</option>
+          <option value='char_4'>黃兔（哭哭）</option>
+          <option value='char_5'>藍兔（開心）</option>
+          <option value='char_6'>藍兔（哭哭）</option>
+          <option value='char_7'>薄荷兔（開心）</option>
+          <option value='char_8'>薄荷兔（哭哭）</option>
         </select>
-        <select id='avatar-outfit'>
-          <option value=''>Outfit: (none)</option>
-          <option value='outfit_1'>Outfit 1</option>
-          <option value='outfit_2'>Outfit 2</option>
-          <option value='outfit_3'>Outfit 3</option>
-          <option value='outfit_4'>Outfit 4</option>
-          <option value='outfit_5'>Outfit 5</option>
-          <option value='outfit_6'>Outfit 6</option>
-          <option value='outfit_7'>Outfit 7</option>
-          <option value='outfit_8'>Outfit 8</option>
-          <option value='outfit_9'>Outfit 9</option>
-          <option value='outfit_10'>Outfit 10</option>
-        </select>
-        <select id='avatar-hat'>
-          <option value=''>Hat: (none)</option>
-          <option value='hat_1'>Hat 1</option>
-          <option value='hat_2'>Hat 2</option>
-          <option value='hat_3'>Hat 3</option>
-          <option value='hat_4'>Hat 4</option>
-          <option value='hat_5'>Hat 5</option>
-          <option value='hat_6'>Hat 6</option>
-          <option value='hat_7'>Hat 7</option>
-          <option value='hat_8'>Hat 8</option>
-          <option value='hat_9'>Hat 9</option>
-          <option value='hat_10'>Hat 10</option>
-        </select>
-        <select id='avatar-face'>
-          <option value=''>Face: (default)</option>
-          <option value='face_1'>Happy</option>
-          <option value='face_2'>Angry</option>
-          <option value='face_3'>Cry</option>
-          <option value='face_4'>Surprise</option>
-        </select>
-        <select id='avatar-pattern'>
-          <option value=''>Pattern: (none)</option>
-          <option value='pattern_1'>Heart</option>
-          <option value='pattern_2'>Star</option>
-          <option value='pattern_3'>Strawberry</option>
-          <option value='pattern_4'>Moon</option>
-          <option value='pattern_5'>Flower</option>
-          <option value='pattern_6'>Dots</option>
-        </select>
-        <button id='avatar-save' style='display:none'>儲存造型</button>
+
+        <!-- legacy paper-doll selects (hidden) -->
+        <select id='avatar-hair' style='display:none'></select>
+        <select id='avatar-outfit' style='display:none'></select>
+        <select id='avatar-hat' style='display:none'></select>
+        <select id='avatar-face' style='display:none'></select>
+        <select id='avatar-pattern' style='display:none'></select>
+
+        <button id='avatar-save' style='display:none'>儲存角色</button>
       </div>
     </div>
   </div>

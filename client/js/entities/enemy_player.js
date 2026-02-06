@@ -79,7 +79,8 @@ export default class EnemyPlayer extends Phaser.Sprite {
         this._cosmetics.push(spr);
       };
 
-      add('cosmetic_base', 16, 16, 1);
+      const baseKey = (parts && parts.character) ? ('cosmetic_' + parts.character) : 'cosmetic_base';
+      add(baseKey, 16, 16, 1);
 
       const hair = parts.hair ? ('cosmetic_' + parts.hair) : null;
       const outfit = parts.outfit ? ('cosmetic_' + parts.outfit) : null;

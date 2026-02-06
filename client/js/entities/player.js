@@ -260,8 +260,9 @@ export default class Player extends Phaser.Sprite {
         this._cosmetics.push(spr);
       };
 
-      // Base (cute original)
-      add('cosmetic_base', 16, 16, 1);
+      // Base character
+      const baseKey = (parts && parts.character) ? ('cosmetic_' + parts.character) : 'cosmetic_base';
+      add(baseKey, 16, 16, 1);
 
       // Preloaded as images: cosmetic_hair_X, cosmetic_outfit_X, cosmetic_hat_X
       const hair = parts.hair ? ('cosmetic_' + parts.hair) : null;

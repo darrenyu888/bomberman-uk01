@@ -90,7 +90,16 @@ class Preload extends Phaser.State {
     const COS_V = '20260206_14';
     const cos = (p) => `images/game/cosmetics/${p}?v=${COS_V}`;
 
+    // Character bases
     this.load.image('cosmetic_base', cos('base.png'));
+    this.load.image('cosmetic_char_1', cos('characters/char_1_pink_happy.png'));
+    this.load.image('cosmetic_char_2', cos('characters/char_2_pink_cry.png'));
+    this.load.image('cosmetic_char_3', cos('characters/char_3_yellow_happy.png'));
+    this.load.image('cosmetic_char_4', cos('characters/char_4_yellow_cry.png'));
+    this.load.image('cosmetic_char_5', cos('characters/char_5_blue_happy.png'));
+    this.load.image('cosmetic_char_6', cos('characters/char_6_blue_cry.png'));
+    this.load.image('cosmetic_char_7', cos('characters/char_7_mint_happy.png'));
+    this.load.image('cosmetic_char_8', cos('characters/char_8_mint_cry.png'));
     // keep same footprint as original player sprite so children won't get culled
     this.load.image('cosmetic_transparent', cos('transparent35.png'));
 

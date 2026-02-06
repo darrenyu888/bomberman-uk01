@@ -4,32 +4,17 @@ export default class Spoil extends Phaser.Sprite {
 
   constructor(game, spoil) {
 
-    let spoil_type;
-    if (spoil.spoil_type === DELAY) {
-      spoil_type = 0
-    }
-    if (spoil.spoil_type === POWER) {
-      spoil_type =  1
-    }
-    if (spoil.spoil_type === SPEED) {
-      spoil_type = 2
-    }
+    // UK01: spoil_tileset now contains 7 frames (0..6) matching constants
+    let frame = 0;
+    if (spoil.spoil_type === SPEED) frame = 0;
+    if (spoil.spoil_type === POWER) frame = 1;
+    if (spoil.spoil_type === DELAY) frame = 2;
+    if (spoil.spoil_type === SHIELD) frame = 3;
+    if (spoil.spoil_type === REMOTE) frame = 4;
+    if (spoil.spoil_type === KICK) frame = 5;
+    if (spoil.spoil_type === GHOST) frame = 6;
 
-    // New powerups: reuse existing frames (until we have dedicated art)
-    if (spoil.spoil_type === SHIELD) {
-      spoil_type = 0
-    }
-    if (spoil.spoil_type === REMOTE) {
-      spoil_type = 1
-    }
-    if (spoil.spoil_type === KICK) {
-      spoil_type = 2
-    }
-    if (spoil.spoil_type === GHOST) {
-      spoil_type = 2
-    }
-
-    super(game, (spoil.col * TILE_SIZE), (spoil.row * TILE_SIZE), 'spoil_tileset', spoil_type);
+    super(game, (spoil.col * TILE_SIZE), (spoil.row * TILE_SIZE), 'spoil_tileset', frame);
 
     this.id = spoil.id
 

@@ -198,6 +198,14 @@
     <div id='game-container'></div>
   </div>
 
+  <!-- Touch controls overlay (HTML; works even when canvas is letterboxed) -->
+  <div id='touch-overlay' class='touch-overlay hidden'>
+    <div id='touch-joy' class='touch-joy'>
+      <div class='touch-joy-knob'></div>
+    </div>
+    <button id='touch-bomb' class='touch-bomb'>💣</button>
+  </div>
+
   <script>
     // HTML Menu overlay controller (more reliable on mobile than Phaser buttons)
     (function(){
@@ -261,6 +269,94 @@
 
       // Default show menu immediately
       showMenu();
+    })();
+  </script>
+
+  <script>
+    // Touch overlay controller
+    (function(){
+      const overlay = document.getElementById('touch-overlay');
+      const joy = document.getElementById('touch-joy');
+      const knob = joy.querySelector('.touch-joy-knob');
+      const bomb = document.getElementById('touch-bomb');
+
+      function getPlayer(){
+        try {
+          const g = window.__phaserGame;
+          const st = g && g.state && g.state.getCurrentState && g.state.getCurrentState();
+          if (st && st.player) return st.player;
+        } catch(_) {}
+        return null;
+      }
+
+      function setDir(dx, dy){
+        const p = getPlayer();
+        if (!p) return;
+        p.touchLeft = p.touchRight = p.touchUp = p.touchDown = false;
+        const dead = 14;
+        if (Math.abs(dx) < dead && Math.abs(dy) < dead) return;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          if (dx > 0) p.touchRight = true; else p.touchLeft = true;
+        } else {
+          if (dy > 0) p.touchDown = true; else p.touchUp = true;
+        }
+      }
+
+      function resetDir(){
+        const p = getPlayer();
+        if (!p) return;
+        p.touchLeft = p.touchRight = p.touchUp = p.touchDown = false;
+      }
+
+      // joystick touch handling
+      let active = false;
+      let startX=0, startY=0;
+      const max = 52;
+
+      function onStart(e){
+        active = true;
+        const t = (e.touches && e.touches[0]) || e;
+        startX = t.clientX; startY = t.clientY;
+        e.preventDefault();
+      }
+      function onMove(e){
+        if (!active) return;
+        const t = (e.touches && e.touches[0]) || e;
+        let dx = t.clientX - startX;
+        let dy = t.clientY - startY;
+        const len = Math.hypot(dx,dy) || 1;
+        const clamp = Math.min(max, len);
+        dx = (dx/len)*clamp;
+        dy = (dy/len)*clamp;
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        setDir(dx, dy);
+        e.preventDefault();
+      }
+      function onEnd(e){
+        active = false;
+        knob.style.transform = 'translate(0px, 0px)';
+        resetDir();
+        e && e.preventDefault && e.preventDefault();
+      }
+
+      joy.addEventListener('touchstart', onStart, {passive:false});
+      joy.addEventListener('touchmove', onMove, {passive:false});
+      joy.addEventListener('touchend', onEnd, {passive:false});
+      joy.addEventListener('touchcancel', onEnd, {passive:false});
+
+      // bomb button
+      bomb.addEventListener('touchstart', (e)=>{
+        const p=getPlayer(); if(p) p.touchBomb=true;
+        e.preventDefault();
+      }, {passive:false});
+      const bombUp = (e)=>{ const p=getPlayer(); if(p) p.touchBomb=false; e && e.preventDefault && e.preventDefault(); };
+      bomb.addEventListener('touchend', bombUp, {passive:false});
+      bomb.addEventListener('touchcancel', bombUp, {passive:false});
+
+      function show(){ overlay.classList.remove('hidden'); }
+      function hide(){ overlay.classList.add('hidden'); bombUp(); onEnd(); }
+
+      window.UK01Touch = { show, hide };
     })();
   </script>
 

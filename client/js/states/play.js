@@ -27,7 +27,11 @@ class Play extends Phaser.State {
     try { if (window.UK01Pending && window.UK01Pending.hide) window.UK01Pending.hide(); } catch (_) {}
     try { if (window.UK01Menu && window.UK01Menu.hideMenu) window.UK01Menu.hideMenu(); } catch (_) {}
 
-    this.createTouchControls();
+    // Use HTML touch overlay on mobile (works even when canvas is letterboxed)
+    try { if (window.UK01Touch && window.UK01Touch.show) window.UK01Touch.show(); } catch (_) {}
+
+    // Keep Phaser touch controls disabled to avoid double-input on mobile
+    // this.createTouchControls();
 
     // SFX
     this.sfxPortal = this.game.add.audio('sfx_portal');
@@ -481,6 +485,7 @@ class Play extends Phaser.State {
   }
 
   onPlayerWin(payload) {
+    try { if (window.UK01Touch && window.UK01Touch.hide) window.UK01Touch.hide(); } catch (_) {}
     clientSocket.emit('leave game');
 
     // Backward compatible: server may send a skin string or { skin, player_id }

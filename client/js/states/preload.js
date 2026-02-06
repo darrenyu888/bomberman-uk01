@@ -86,18 +86,23 @@ class Preload extends Phaser.State {
     this.load.audio('bgm_main',      ['sfx/bgm.wav']);
 
     // Cosmetics (paper-doll overlays)
-    this.load.image('cosmetic_base', 'images/game/cosmetics/base.png');
-    this.load.image('cosmetic_transparent', 'images/game/cosmetics/transparent.png');
+    // Cache-bust so clients reliably see updated PNGs
+    const COS_V = '20260206_4';
+    const cos = (p) => `images/game/cosmetics/${p}?v=${COS_V}`;
+
+    this.load.image('cosmetic_base', cos('base.png'));
+    this.load.image('cosmetic_transparent', cos('transparent.png'));
+
     for (let i = 1; i <= 10; i++) {
-      this.load.image(`cosmetic_hat_${i}`, `images/game/cosmetics/hat_${i}.png`);
-      this.load.image(`cosmetic_hair_${i}`, `images/game/cosmetics/hair_${i}.png`);
-      this.load.image(`cosmetic_outfit_${i}`, `images/game/cosmetics/outfit_${i}.png`);
+      this.load.image(`cosmetic_hat_${i}`, cos(`hat_${i}.png`));
+      this.load.image(`cosmetic_hair_${i}`, cos(`hair_${i}.png`));
+      this.load.image(`cosmetic_outfit_${i}`, cos(`outfit_${i}.png`));
     }
     for (let i = 1; i <= 4; i++) {
-      this.load.image(`cosmetic_face_${i}`, `images/game/cosmetics/face_${i}.png`);
+      this.load.image(`cosmetic_face_${i}`, cos(`face_${i}.png`));
     }
     for (let i = 1; i <= 6; i++) {
-      this.load.image(`cosmetic_pattern_${i}`, `images/game/cosmetics/pattern_${i}.png`);
+      this.load.image(`cosmetic_pattern_${i}`, cos(`pattern_${i}.png`));
     }
 
     // Skins:

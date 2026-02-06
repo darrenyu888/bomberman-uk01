@@ -255,15 +255,21 @@ export default class Player extends Phaser.Sprite {
         this._cosmetics.push(spr);
       };
 
+      // Base (cute original)
+      add('cosmetic_base', 16, 16, 1);
+
       // Preloaded as images: cosmetic_hair_X, cosmetic_outfit_X, cosmetic_hat_X
       const hair = parts.hair ? ('cosmetic_' + parts.hair) : null;
       const outfit = parts.outfit ? ('cosmetic_' + parts.outfit) : null;
       const hat = parts.hat ? ('cosmetic_' + parts.hat) : null;
 
-      // offsets tuned for 32x32 preview sprite
-      add(outfit, 16, 18, 0.95);
-      add(hair,   16, 10, 0.98);
-      add(hat,    16, 6,  0.98);
+      // Hide the legacy bomberman sprite underneath (keep physics/body)
+      this.alpha = 0.001;
+
+      // offsets tuned for 32x32 sprite
+      add(outfit, 16, 16, 0.98);
+      add(hair,   16, 16, 0.99);
+      add(hat,    16, 16, 0.99);
     } catch (_) {}
   }
 

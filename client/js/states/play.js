@@ -512,10 +512,11 @@ class Play extends Phaser.State {
     try { if (window.UK01Touch && window.UK01Touch.hide) window.UK01Touch.hide(); } catch (_) {}
     clientSocket.emit('leave game');
 
-    // Backward compatible: server may send a skin string or { skin, player_id }
+    // Backward compatible: server may send a skin string or { skin, player_id, reason }
     const winner_skin = (payload && payload.skin) ? payload.skin : payload;
+    const reason = (payload && payload.reason) ? payload.reason : null;
 
-    this.state.start('Win', true, false, winner_skin);
+    this.state.start('Win', true, false, { skin: winner_skin, reason });
   }
 
   onPlayerDisconnect({ player_id }) {

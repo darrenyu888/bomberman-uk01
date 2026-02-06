@@ -286,8 +286,12 @@ var Play = {
     } catch (_) {}
 
     setTimeout(function() {
-      // keep backward compatibility: send skin; also send winner id when available
-      serverSocket.sockets.to(game_id).emit('player win', { skin: alivePlayerSkin, player_id: alivePlayerId });
+      // keep backward compatibility: send skin; also send winner id + reason
+      serverSocket.sockets.to(game_id).emit('player win', {
+        skin: alivePlayerSkin,
+        player_id: alivePlayerId,
+        reason: 'last_alive'
+      });
     }, 3000);
   }
 }

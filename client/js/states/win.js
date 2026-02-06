@@ -2,8 +2,15 @@ import { Text } from '../helpers/elements';
 
 class Win extends Phaser.State {
 
-  init(winner_skin) {
-    this.skin = winner_skin
+  init(payload) {
+    // payload may be a string skin or { skin, reason }
+    if (payload && typeof payload === 'object') {
+      this.skin = payload.skin;
+      this.reason = payload.reason;
+    } else {
+      this.skin = payload;
+      this.reason = null;
+    }
   }
 
   create() {
@@ -49,7 +56,8 @@ class Win extends Phaser.State {
 
   winnerText() {
     if (this.skin) {
-      return `Player: "${this.skin}" won! Tap to return to main menu.`
+      const why = this.reason ? ` (reason: ${this.reason})` : '';
+      return `Player: "${this.skin}" won!${why} Tap to return to main menu.`
     }
 
     return 'Opponent left! Tap to return to main menu.'

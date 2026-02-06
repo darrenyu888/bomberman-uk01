@@ -91,7 +91,8 @@ class Preload extends Phaser.State {
     const cos = (p) => `images/game/cosmetics/${p}?v=${COS_V}`;
 
     this.load.image('cosmetic_base', cos('base.png'));
-    this.load.image('cosmetic_transparent', cos('transparent.png'));
+    // keep same footprint as original player sprite so children won't get culled
+    this.load.image('cosmetic_transparent', cos('transparent35.png'));
 
     for (let i = 1; i <= 10; i++) {
       this.load.image(`cosmetic_hat_${i}`, cos(`hat_${i}.png`));

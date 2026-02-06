@@ -25,6 +25,23 @@
 
 ---
 
+## 遊戲入口（UK01）
+- 線上遊玩（Production）：https://uk01.taiwan101.net/
+
+---
+
+## 地圖（Maps）
+目前前端選單可選的地圖（見 `client/js/utils/constants.js` → `AVAILABLE_MAPS`）：
+- hot_map
+- cold_map
+- arena_map
+- open_map
+- rune_lab
+- mirror_temple
+- trap_garden
+
+---
+
 ## 系統需求
 - Node.js：建議 **18+**（見 `package.json` engines）
 - npm：建議使用 `npm ci`（本 repo 提供 `package-lock.json`）

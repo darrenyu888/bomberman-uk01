@@ -570,6 +570,9 @@ function applyBlastToBots({ game, blastedCells }) {
 
 function startBotsForRunningGame({ game, playModule }) {
   if (!game || !game.id) return;
+  try {
+    console.log('bots:start', { gameId: game.id, desired: getDesiredBots(game), diff: getDifficulty(game) });
+  } catch (_) {}
   if (botLoopsByGameId.has(game.id)) return; // already running
 
   const stateMap = botStateByGameId.get(game.id) || new Map();

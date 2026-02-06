@@ -455,13 +455,50 @@
       btnStart.disabled = true;
       btnStart.style.opacity = '0.55';
 
+      let startInProgress = false;
+      let startRetryTimer = null;
+
+      function stopStartRetries() {
+        if (startRetryTimer) {
+          clearInterval(startRetryTimer);
+          startRetryTimer = null;
+        }
+        startInProgress = false;
+        btnStart.textContent = 'Start Game';
+      }
+
+      // If server launches game, hide overlay and stop retries
+      try {
+        window.clientSocket.on('launch game', () => {
+          stopStartRetries();
+          hide();
+        });
+      } catch (_) {}
+
       btnStart.addEventListener('click', () => {
         if (!joined) {
           alert('正在同步房間狀態，請等 1 秒再按 Start');
           return;
         }
-        try { window.clientSocket.emit('start game'); } catch(_){}
-        hide();
+        if (startInProgress) return;
+
+        startInProgress = true;
+        btnStart.textContent = 'Starting…';
+
+        let tries = 0;
+        const send = () => {
+          tries += 1;
+          try { window.clientSocket.emit('start game'); } catch(_){}
+          if (tries >= 6) {
+            // If still not launched, allow user to try again.
+            stopStartRetries();
+            alert('Start 似乎沒有成功（可能網路/同步問題），請再按一次 Start');
+          }
+        };
+
+        // Send immediately and retry a few times to avoid race conditions
+        send();
+        startRetryTimer = setInterval(send, 450);
       });
 
       btnLeave.addEventListener('click', () => {

@@ -17,10 +17,18 @@ var Play = {
   },
 
   onStartGame: function() {
-    if (!this.socket_game_id) return;
+    if (!this.socket_game_id) {
+      console.warn('start game ignored: missing socket_game_id', this.id);
+      return;
+    }
 
     let game = Lobby.deletePendingGame(this.socket_game_id);
-    if (!game) return;
+    if (!game) {
+      console.warn('start game ignored: pending game missing', this.socket_game_id);
+      return;
+    }
+
+    console.log('start game', { gameId: game.id, by: this.id, players: Object.keys(game.players || {}).length });
 
     runningGames.set(game.id, game)
 

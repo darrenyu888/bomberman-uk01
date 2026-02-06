@@ -408,6 +408,7 @@
 
       let aiCount = 3;
       let aiDiff = 'normal';
+      let joined = false;
 
       function show() {
         pending.classList.remove('hidden');
@@ -431,6 +432,7 @@
 
       function updateFromGame(current_game) {
         if (!current_game) return;
+        joined = true;
         if (current_game.name) titleEl.textContent = current_game.name;
 
         // enable start when at least 1 player
@@ -449,7 +451,15 @@
         if (d) setDiff(d);
       });
 
+      // Default: disabled until we receive at least one 'update game'
+      btnStart.disabled = true;
+      btnStart.style.opacity = '0.55';
+
       btnStart.addEventListener('click', () => {
+        if (!joined) {
+          alert('正在同步房間狀態，請等 1 秒再按 Start');
+          return;
+        }
         try { window.clientSocket.emit('start game'); } catch(_){}
         hide();
       });

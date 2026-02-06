@@ -8,8 +8,9 @@ import Win from './states/win';
 
 class Game extends Phaser.Game {
   constructor() {
-    // Start with viewport size; Boot state will keep it in sync on resize
-    super(window.innerWidth, window.innerHeight, Phaser.AUTO, 'game-container');
+    // Use a fixed logical resolution; CSS + ScaleManager will scale to fit mobile screens.
+    // Map size is 28x18 tiles at 35px => 980x630.
+    super(980, 630, Phaser.AUTO, 'game-container');
 
     // Tell Phaser to use setTimeOut even if RAF(request animation frame) is available.
     this.config['forceSetTimeOut'] = true

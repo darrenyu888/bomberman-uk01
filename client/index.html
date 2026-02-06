@@ -29,6 +29,8 @@
       const hairSel = document.getElementById('avatar-hair');
       const outfitSel = document.getElementById('avatar-outfit');
       const hatSel = document.getElementById('avatar-hat');
+      const faceSel = document.getElementById('avatar-face');
+      const patternSel = document.getElementById('avatar-pattern');
       const avatarSaveBtn = document.getElementById('avatar-save');
       const previewEl = document.getElementById('avatar-preview');
 
@@ -73,6 +75,8 @@
           hairSel.value = parts.hair || '';
           outfitSel.value = parts.outfit || '';
           hatSel.value = parts.hat || '';
+          if (faceSel) faceSel.value = parts.face || '';
+          if (patternSel) patternSel.value = parts.pattern || '';
           try { updatePreview(); } catch (_) {}
         } else {
           window.currentUser = null;
@@ -103,6 +107,8 @@
         const hair = hairSel.value || '';
         const outfit = outfitSel.value || '';
         const hat = hatSel.value || '';
+        const face = (faceSel && faceSel.value) ? faceSel.value : '';
+        const pattern = (patternSel && patternSel.value) ? patternSel.value : '';
         const setBg = (cls, key) => {
           const el = previewEl.querySelector(cls);
           if (!el) return;
@@ -113,11 +119,15 @@
         setBg('.av-hair', hair);
         setBg('.av-outfit', outfit);
         setBg('.av-hat', hat);
+        setBg('.av-face', face);
+        setBg('.av-pattern', pattern);
       }
 
       hairSel.addEventListener('change', updatePreview);
       outfitSel.addEventListener('change', updatePreview);
       hatSel.addEventListener('change', updatePreview);
+      if (faceSel) faceSel.addEventListener('change', updatePreview);
+      if (patternSel) patternSel.addEventListener('change', updatePreview);
 
       avatarSaveBtn.addEventListener('click', async () => {
         const displayName = (nameEl.value || '').trim();
@@ -125,6 +135,8 @@
           hair: (hairSel.value || ''),
           outfit: (outfitSel.value || ''),
           hat: (hatSel.value || ''),
+          face: (faceSel ? (faceSel.value || '') : ''),
+          pattern: (patternSel ? (patternSel.value || '') : ''),
         };
 
         const r = await fetch('/api/profile', {
@@ -225,6 +237,8 @@
         <div id='avatar-preview' class='avatar-preview' title='預覽（示意）'>
           <div class='av-layer av-base' style="background-image:url(/images/game/cosmetics/base.png)"></div>
           <div class='av-layer av-outfit'></div>
+          <div class='av-layer av-pattern'></div>
+          <div class='av-layer av-face'></div>
           <div class='av-layer av-hair'></div>
           <div class='av-layer av-hat'></div>
         </div>
@@ -266,6 +280,22 @@
           <option value='hat_8'>Hat 8</option>
           <option value='hat_9'>Hat 9</option>
           <option value='hat_10'>Hat 10</option>
+        </select>
+        <select id='avatar-face'>
+          <option value=''>Face: (default)</option>
+          <option value='face_1'>Happy</option>
+          <option value='face_2'>Angry</option>
+          <option value='face_3'>Cry</option>
+          <option value='face_4'>Surprise</option>
+        </select>
+        <select id='avatar-pattern'>
+          <option value=''>Pattern: (none)</option>
+          <option value='pattern_1'>Heart</option>
+          <option value='pattern_2'>Star</option>
+          <option value='pattern_3'>Strawberry</option>
+          <option value='pattern_4'>Moon</option>
+          <option value='pattern_5'>Flower</option>
+          <option value='pattern_6'>Dots</option>
         </select>
         <button id='avatar-save' style='display:none'>儲存造型</button>
       </div>

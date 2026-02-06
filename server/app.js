@@ -149,6 +149,8 @@ app.post('/api/profile', (req, res) => {
       norm.hair = pick('hair', 'hair_');
       norm.outfit = pick('outfit', 'outfit_');
       norm.hat = pick('hat', 'hat_');
+      norm.face = pick('face', 'face_');
+      norm.pattern = pick('pattern', 'pattern_');
       avatarParts = norm;
     }
 

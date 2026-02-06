@@ -92,6 +92,12 @@ class Preload extends Phaser.State {
       this.load.image(`cosmetic_hair_${i}`, `images/game/cosmetics/hair_${i}.png`);
       this.load.image(`cosmetic_outfit_${i}`, `images/game/cosmetics/outfit_${i}.png`);
     }
+    for (let i = 1; i <= 4; i++) {
+      this.load.image(`cosmetic_face_${i}`, `images/game/cosmetics/face_${i}.png`);
+    }
+    for (let i = 1; i <= 6; i++) {
+      this.load.image(`cosmetic_pattern_${i}`, `images/game/cosmetics/pattern_${i}.png`);
+    }
 
     // Skins:
     this.load.image('bomberman_head_blank',     'images/game/chars/0-face.png');

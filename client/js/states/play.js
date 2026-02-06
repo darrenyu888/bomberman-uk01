@@ -489,20 +489,67 @@ class Play extends Phaser.State {
       const now = this.game.time.now;
       if (!this.player._lastPortalAt) this.player._lastPortalAt = 0;
 
+      const isBlockedCell = (c, r) => {
+        try {
+          const t = this.map.getTile(c, r, this.blockLayer);
+          if (!t) return false;
+          // Treat walls/balks as blocked
+          if (t.index === this.wallTileIndex) return true;
+          if (this.balkTileIndex != null && t.index === this.balkTileIndex) return true;
+          // Some maps may mark additional collision tiles
+          if (t.collides) return true;
+          return false;
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const hasBombAt = (c, r) => {
+        try {
+          return (this.bombs && this.bombs.children || []).some(b => b && b.col === c && b.row === r);
+        } catch (_) { return false; }
+      };
+
+      const findSafeLanding = (c0, r0) => {
+        // Prefer exact target, else search nearby in small radius
+        const tryCell = (c, r) => {
+          if (isBlockedCell(c, r)) return null;
+          if (hasBombAt(c, r)) return null;
+          return { col: c, row: r };
+        };
+        let ok = tryCell(c0, r0);
+        if (ok) return ok;
+
+        for (let rad = 1; rad <= 2; rad++) {
+          for (let dr = -rad; dr <= rad; dr++) {
+            for (let dc = -rad; dc <= rad; dc++) {
+              const c = c0 + dc;
+              const r = r0 + dr;
+              ok = tryCell(c, r);
+              if (ok) return ok;
+            }
+          }
+        }
+        return null;
+      };
+
       const portalIndex = this.portalCells.findIndex(p => p.col === col && p.row === row);
-      if (portalIndex >= 0 && now - this.player._lastPortalAt > 900) {
+      if (portalIndex >= 0 && now - this.player._lastPortalAt > 950) {
         const pairIndex = (portalIndex % 2 === 0) ? portalIndex + 1 : portalIndex - 1;
         const target = this.portalCells[pairIndex];
         if (target) {
-          // Teleport to tile center
-          this.player.x = target.col * TILE_SIZE;
-          this.player.y = target.row * TILE_SIZE;
-          this.player.body.velocity.set(0);
-          this.player.body.reset(this.player.x, this.player.y);
-          this.player.prevPosition = { x: this.player.x, y: this.player.y };
-          this.player._lastPortalAt = now;
+          const landing = findSafeLanding(target.col, target.row);
+          if (landing) {
+            // Teleport to tile top-left (sprite origin). Keep body fully inside the tile.
+            this.player.x = landing.col * TILE_SIZE;
+            this.player.y = landing.row * TILE_SIZE;
+            this.player.body.velocity.set(0);
+            this.player.body.reset(this.player.x, this.player.y);
+            this.player.prevPosition = { x: this.player.x, y: this.player.y };
+            this.player._lastPortalAt = now;
 
-          try { if (this.sfxPortal) this.sfxPortal.play(); } catch (_) {}
+            try { if (this.sfxPortal) this.sfxPortal.play(); } catch (_) {}
+          }
         }
       }
     }

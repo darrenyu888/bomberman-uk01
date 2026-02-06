@@ -87,7 +87,7 @@ class Preload extends Phaser.State {
 
     // Cosmetics (paper-doll overlays)
     // Cache-bust so clients reliably see updated PNGs
-    const COS_V = '20260206_13';
+    const COS_V = '20260206_14';
     const cos = (p) => `images/game/cosmetics/${p}?v=${COS_V}`;
 
     this.load.image('cosmetic_base', cos('base.png'));

@@ -28,11 +28,13 @@ export default class EnemyPlayer extends Phaser.Sprite {
   }
 
   update () {
+    this.animateCosmetics();
     // this.game.debug.body(this);
   }
 
   goTo(newPosition) {
     this.lastMoveAt = this.game.time.now;
+    this._movingUntil = this.game.time.now + PING;
 
     this.animateFace(newPosition);
 
@@ -72,6 +74,7 @@ export default class EnemyPlayer extends Phaser.Sprite {
         spr.anchor.setTo(0.5);
         spr.scale.setTo(0.34);
         spr.alpha = alpha;
+        spr._baseY = y;
         this.addChild(spr);
         this._cosmetics.push(spr);
       };
@@ -86,11 +89,30 @@ export default class EnemyPlayer extends Phaser.Sprite {
 
       try { this.loadTexture('cosmetic_transparent'); } catch (_) {}
 
-      add(outfit, 16, 16, 0.98);
-      add(pattern,16, 16, 0.99);
-      add(face,   16, 16, 0.995);
-      add(hair,   16, 16, 0.999);
-      add(hat,    16, 16, 0.999);
+      add(outfit, 16, 22, 0.98);
+      add(pattern,16, 22, 0.99);
+      add(face,   16, 14, 0.995);
+      add(hair,   16, 12, 0.999);
+      add(hat,    16, 6,  0.999);
+    } catch (_) {}
+  }
+
+  animateCosmetics() {
+    try {
+      if (!this._cosmetics || !this._cosmetics.length) return;
+      if (!this._cosBobT) this._cosBobT = 0;
+
+      // If position changed since last frame, consider moving
+      const moving = !!(this._movingUntil && this.game.time.now < this._movingUntil);
+      if (moving) this._cosBobT += (this.game.time.elapsedMS || 16);
+      else this._cosBobT = 0;
+
+      const bob = moving ? Math.sin(this._cosBobT / 90.0) * 1.6 : 0;
+      for (const s of this._cosmetics) {
+        if (!s) continue;
+        const by = (typeof s._baseY === 'number') ? s._baseY : s.y;
+        s.y = by + bob;
+      }
     } catch (_) {}
   }
 

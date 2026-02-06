@@ -63,6 +63,8 @@ export default class Player extends Phaser.Sprite {
       this.handleBombs()
     }
 
+    this.animateCosmetics();
+
     // this.game.debug.body(this);
     // this.game.debug.spriteInfo(this, 32, 32);
   }
@@ -251,9 +253,9 @@ export default class Player extends Phaser.Sprite {
         const spr = this.game.add.sprite(x, y, key);
         spr.anchor.setTo(0.5);
         // cosmetics assets are 128x128 but we display them slightly larger than 32x32
-        // so the full body + tail are visible.
         spr.scale.setTo(0.34);
         spr.alpha = alpha;
+        spr._baseY = y;
         this.addChild(spr);
         this._cosmetics.push(spr);
       };
@@ -271,12 +273,36 @@ export default class Player extends Phaser.Sprite {
       // Hide legacy bomberman sprite underneath (keep physics/body) without affecting children.
       try { this.loadTexture('cosmetic_transparent'); } catch (_) {}
 
-      // offsets tuned for 32x32 sprite
-      add(outfit, 16, 16, 0.98);
-      add(pattern,16, 16, 0.99);
-      add(face,   16, 16, 0.995);
-      add(hair,   16, 16, 0.999);
-      add(hat,    16, 16, 0.999);
+      // tuned offsets so accessories don't cover the face by default
+      add(outfit, 16, 22, 0.98);
+      add(pattern,16, 22, 0.99);
+      add(face,   16, 14, 0.995);
+      add(hair,   16, 12, 0.999);
+      add(hat,    16, 6,  0.999);
+    } catch (_) {}
+  }
+
+  animateCosmetics() {
+    try {
+      if (!this._cosmetics || !this._cosmetics.length) return;
+
+      const moving = Math.abs(this.body.velocity.x) > 1 || Math.abs(this.body.velocity.y) > 1;
+      if (!this._cosBobT) this._cosBobT = 0;
+
+      if (moving) {
+        this._cosBobT += (this.game.time.elapsedMS || 16);
+      } else {
+        // decay to rest
+        this._cosBobT = 0;
+      }
+
+      const bob = moving ? Math.sin(this._cosBobT / 90.0) * 1.6 : 0;
+
+      for (const s of this._cosmetics) {
+        if (!s) continue;
+        const by = (typeof s._baseY === 'number') ? s._baseY : s.y;
+        s.y = by + bob;
+      }
     } catch (_) {}
   }
 

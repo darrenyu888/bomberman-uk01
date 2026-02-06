@@ -22,12 +22,19 @@
       const saveBtn = document.getElementById('auth-save-name');
       const logoutBtn = document.getElementById('auth-logout');
       const gBtn = document.getElementById('google-btn');
+      const toggleBtn = document.getElementById('auth-toggle');
+
+      toggleBtn.addEventListener('click', () => {
+        el.classList.toggle('minimized');
+      });
 
       async function refreshMe() {
         const r = await fetch('/api/me');
         const data = await r.json();
         if (data && data.user) {
           statusEl.textContent = `已登入：${data.user.displayName}`;
+          // auto-minimize after login to avoid blocking gameplay
+          el.classList.add('minimized');
           nameEl.value = data.user.displayName || '';
           logoutBtn.style.display = 'inline-block';
           saveBtn.style.display = 'inline-block';
@@ -113,16 +120,22 @@
   <script src='bundle.js'></script>
 </head>
 <body>
-  <div id='auth-overlay'>
-    <div id='auth-status'>載入中…</div>
-    <div class='auth-row'>
-      <div id='google-render'></div>
-      <button id='google-btn'>Google 登入</button>
-      <button id='auth-logout' style='display:none'>登出</button>
+  <div id='auth-overlay' class='minimized'>
+    <div class='auth-row' style='margin-top:0'>
+      <div id='auth-status' style='flex:1'>載入中…</div>
+      <button id='auth-toggle' title='顯示/收合'>帳號</button>
     </div>
-    <div class='auth-row'>
-      <input id='auth-name' placeholder='自訂名稱 (1..24)' maxlength='24' />
-      <button id='auth-save-name' style='display:none'>儲存名稱</button>
+
+    <div id='auth-body'>
+      <div class='auth-row'>
+        <div id='google-render'></div>
+        <button id='google-btn'>Google 登入</button>
+        <button id='auth-logout' style='display:none'>登出</button>
+      </div>
+      <div class='auth-row'>
+        <input id='auth-name' placeholder='自訂名稱 (1..24)' maxlength='24' />
+        <button id='auth-save-name' style='display:none'>儲存名稱</button>
+      </div>
     </div>
   </div>
 

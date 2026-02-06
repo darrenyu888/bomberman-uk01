@@ -34,15 +34,35 @@ html, body, #game-wrapper, #game-container {
 #auth-overlay {
   position: fixed;
   top: 10px;
-  left: 10px;
+  right: 10px;
+  left: auto;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-family: Arial, sans-serif;
   font-size: 14px;
   max-width: 340px;
+  backdrop-filter: blur(4px);
+}
+
+/* Do not block gameplay/touch except for actual controls inside */
+#auth-overlay {
+  pointer-events: none;
+}
+#auth-overlay button,
+#auth-overlay input,
+#auth-overlay #google-render {
+  pointer-events: auto;
+}
+
+#auth-overlay.minimized {
+  padding: 6px 8px;
+  max-width: 220px;
+}
+#auth-overlay.minimized #auth-body {
+  display: none;
 }
 
 #auth-overlay .auth-row {

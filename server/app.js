@@ -66,6 +66,8 @@ app.get('/api/me', (req, res) => {
 app.get('/api/leaderboard', (req, res) => {
   try {
     const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '20', 10) || 20));
+    const sort = (req.query.sort || 'wins').toString();
+    const minGames = Math.max(0, Math.min(9999, parseInt(req.query.minGames || '0', 10) || 0));
 
     // Read from JSON store
     const fs = require('fs');
@@ -76,7 +78,7 @@ app.get('/api/leaderboard', (req, res) => {
       data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     } catch (_) {}
 
-    const rows = Object.values(data.users || {}).map(u => {
+    let rows = Object.values(data.users || {}).map(u => {
       const s = (data.stats && data.stats[u.id]) || { gamesPlayed: 0, wins: 0, losses: 0 };
       const gamesPlayed = s.gamesPlayed || 0;
       const wins = s.wins || 0;
@@ -92,11 +94,22 @@ app.get('/api/leaderboard', (req, res) => {
       };
     });
 
-    // Default sort: wins desc
-    rows.sort((a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.gamesPlayed - a.gamesPlayed));
+    // Optional filter for winRate sorting fairness
+    if (minGames > 0) {
+      rows = rows.filter(r => (r.gamesPlayed || 0) >= minGames);
+    }
+
+    const byWins = (a, b) => (b.wins - a.wins) || (b.winRate - a.winRate) || (b.gamesPlayed - a.gamesPlayed);
+    const byGames = (a, b) => (b.gamesPlayed - a.gamesPlayed) || (b.wins - a.wins);
+    const byWinRate = (a, b) => (b.winRate - a.winRate) || (b.wins - a.wins) || (b.gamesPlayed - a.gamesPlayed);
+
+    if (sort === 'games') rows.sort(byGames);
+    else if (sort === 'winrate') rows.sort(byWinRate);
+    else rows.sort(byWins);
 
     res.json({
-      sort: 'wins',
+      sort: (sort === 'games' || sort === 'winrate' || sort === 'wins') ? sort : 'wins',
+      minGames,
       limit,
       rows: rows.slice(0, limit)
     });
@@ -139,7 +152,15 @@ app.get('/leaderboard', (req, res) => {
 <style>
   body{font-family:Arial,sans-serif;background:#0b0b0f;color:#fff;margin:0;padding:18px}
   h1{margin:0 0 12px 0;font-size:20px}
-  .hint{opacity:.75;margin-bottom:14px;font-size:13px}
+  .hint{opacity:.75;margin-bottom:14px;font-size:13px;white-space:pre-line}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 14px 0}
+  .pill{padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:14px}
+  .pill.active{background:rgba(0,229,255,.22);border-color:rgba(0,229,255,.55)}
+  .spacer{flex:1}
+  .min{opacity:.85;font-size:13px}
+  #minGames{width:90px;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:#fff}
+  .me{opacity:.9;font-size:12px}
+  .me-row{background:rgba(122,28,255,.18)}
   table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:12px;overflow:hidden}
   th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:14px}
   th{opacity:.85}
@@ -149,22 +170,98 @@ app.get('/leaderboard', (req, res) => {
 </style>
 </head>
 <body>
-<h1>Leaderboard（按勝場）</h1>
-<div class="hint">資料來源：登入玩家戰績（wins/losses/gamesPlayed）</div>
-<table id="t"><thead><tr><th class="rank">#</th><th>玩家</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Games</th></tr></thead><tbody></tbody></table>
+<h1>Leaderboard</h1>
+<div class="hint">預設按勝場（Wins）排序；WinRate 可設定最低場次門檻。</div>
+
+<div class="controls">
+  <button class="pill active" data-sort="wins">Wins</button>
+  <button class="pill" data-sort="winrate">WinRate</button>
+  <button class="pill" data-sort="games">Games</button>
+
+  <span class="spacer"></span>
+  <label class="min">Min games</label>
+  <input id="minGames" type="number" min="0" max="999" value="10" />
+</div>
+
+<div id="me-rank" class="hint"></div>
+
+<table id="t"><thead><tr><th class="rank">#</th><th>玩家</th><th class="num">Wins</th><th class="num">Losses</th><th class="num">Games</th><th class="num">WinRate</th></tr></thead><tbody></tbody></table>
 <script>
-  fetch('/api/leaderboard?limit=50').then(r=>r.json()).then(data=>{
+  let currentSort = 'wins';
+  let currentMe = null;
+
+  function esc(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+  }
+
+  function setActive(){
+    document.querySelectorAll('.pill').forEach(p=>{
+      p.classList.toggle('active', p.getAttribute('data-sort') === currentSort);
+    });
+  }
+
+  async function fetchMe(){
+    try {
+      const r = await fetch('/api/me');
+      const d = await r.json();
+      currentMe = d && d.user ? d.user : null;
+    } catch (_) { currentMe = null; }
+  }
+
+  async function load(){
+    const minGames = parseInt(document.getElementById('minGames').value || '0', 10) || 0;
+    const url = '/api/leaderboard?limit=50&sort=' + encodeURIComponent(currentSort) + '&minGames=' + encodeURIComponent(minGames);
+
+    const r = await fetch(url);
+    const data = await r.json();
+
     const tb=document.querySelector('#t tbody');
-    (data.rows||[]).forEach((r,i)=>{
+    tb.innerHTML='';
+
+    let myRank = null;
+
+    (data.rows||[]).forEach((row,i)=>{
       const tr=document.createElement('tr');
+      const isMe = currentMe && row.userId === currentMe.id;
+      if (isMe) myRank = i+1;
+
+      const wr = row.gamesPlayed ? (row.wins/row.gamesPlayed) : 0;
+      const wrPct = Math.round(wr*1000)/10;
+
       tr.innerHTML = '<td class="rank">' + (i+1) + '</td>'
-        + '<td>' + (r.displayName || '') + '</td>'
-        + '<td class="num">' + (r.wins||0) + '</td>'
-        + '<td class="num">' + (r.losses||0) + '</td>'
-        + '<td class="num">' + (r.gamesPlayed||0) + '</td>';
+        + '<td>' + esc(row.displayName) + (isMe ? ' <span class="me">(你)</span>' : '') + '</td>'
+        + '<td class="num">' + (row.wins||0) + '</td>'
+        + '<td class="num">' + (row.losses||0) + '</td>'
+        + '<td class="num">' + (row.gamesPlayed||0) + '</td>'
+        + '<td class="num">' + wrPct + '%</td>';
+
+      if (isMe) tr.classList.add('me-row');
       tb.appendChild(tr);
-    })
-  }).catch(()=>{});
+    });
+
+    const meEl = document.getElementById('me-rank');
+    if (currentMe) {
+      meEl.textContent = myRank ? ('你的名次：#' + myRank) : '你的名次：未上榜（可能因 min games 過濾）';
+    } else {
+      meEl.textContent = '（未登入：無法標示你的名次）';
+    }
+  }
+
+  document.querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click', async ()=>{
+      currentSort = p.getAttribute('data-sort') || 'wins';
+      setActive();
+      await load();
+    });
+  });
+
+  document.getElementById('minGames').addEventListener('change', load);
+
+  (async ()=>{
+    await fetchMe();
+    setActive();
+    await load();
+  })();
 </script>
 </body></html>`);
 });

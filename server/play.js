@@ -24,6 +24,16 @@ var Play = {
 
     runningGames.set(game.id, game)
 
+    // Record gamesPlayed for authenticated humans
+    try {
+      const Store = require('./store');
+      const userIds = [];
+      for (const p of Object.values(game.players || {})) {
+        if (p && p.userId) userIds.push(p.userId);
+      }
+      if (userIds.length) Store.recordGameStart(userIds);
+    } catch (_) {}
+
     // Start server-side bots (Normal difficulty)
     Bots.startBotsForRunningGame({ game, playModule: Play });
 
@@ -227,19 +237,39 @@ var Play = {
 
     let alivePlayersCount = 0
     let alivePlayerSkin = null
-    for (let player of Object.values(current_game.players)) {
-      if ( !player.isAlive ) { continue }
+    let alivePlayerId = null
+    let aliveWinnerUserId = null
 
-      alivePlayerSkin = player.skin
-      alivePlayersCount += 1
+    for (let [pid, player] of Object.entries(current_game.players)) {
+      if (!player || !player.isAlive) continue;
+
+      alivePlayerId = pid;
+      alivePlayerSkin = player.skin;
+      aliveWinnerUserId = player.userId || null;
+      alivePlayersCount += 1;
     }
 
     if (alivePlayersCount >= 2) {
       return
     }
 
+    // Record simple win/loss stats for authenticated humans.
+    try {
+      const Store = require('./store');
+      const loserUserIds = [];
+      for (const p of Object.values(current_game.players || {})) {
+        if (!p || !p.userId) continue;
+        if (p.userId === aliveWinnerUserId) continue;
+        loserUserIds.push(p.userId);
+      }
+      if (aliveWinnerUserId || loserUserIds.length) {
+        Store.recordGameResult({ winnerUserId: aliveWinnerUserId, loserUserIds });
+      }
+    } catch (_) {}
+
     setTimeout(function() {
-      serverSocket.sockets.to(game_id).emit('player win', alivePlayerSkin);
+      // keep backward compatibility: send skin; also send winner id when available
+      serverSocket.sockets.to(game_id).emit('player win', { skin: alivePlayerSkin, player_id: alivePlayerId });
     }, 3000);
   }
 }

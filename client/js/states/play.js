@@ -455,8 +455,11 @@ class Play extends Phaser.State {
     findAndDestroyFrom(player_id, this.enemies)
   }
 
-  onPlayerWin(winner_skin) {
+  onPlayerWin(payload) {
     clientSocket.emit('leave game');
+
+    // Backward compatible: server may send a skin string or { skin, player_id }
+    const winner_skin = (payload && payload.skin) ? payload.skin : payload;
 
     this.state.start('Win', true, false, winner_skin);
   }

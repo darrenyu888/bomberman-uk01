@@ -29,3 +29,33 @@ html, body, #game-wrapper, #game-container {
   width: 100vw !important;
   height: 100vh !important;
 }
+
+/* Auth overlay (Google login + display name) */
+#auth-overlay {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  max-width: 340px;
+}
+
+#auth-overlay .auth-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#auth-name {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.25);
+  min-width: 170px;
+}

@@ -58,6 +58,15 @@ var Lobby = {
 
     current_game.addPlayer(this.id);
 
+    // attach authenticated user info (do NOT include email)
+    try {
+      const p = current_game.players && current_game.players[this.id];
+      if (p && this.user) {
+        p.userId = this.user.id;
+        p.displayName = this.user.displayName;
+      }
+    } catch (_) {}
+
     // Auto-fill with server-side bots up to max players (Normal difficulty)
     if (!current_game.isFull()) {
       Bots.ensureBotsInPendingGame(current_game);

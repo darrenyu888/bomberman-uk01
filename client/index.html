@@ -8,17 +8,126 @@
   <script src='lib/phaser.min.js'></script>
   <script src='/socket.io/socket.io.js'></script>
 
-  <script src='bundle.js'></script>
+  <!-- Google Identity Services is loaded dynamically after /api/config -->
 
   <script>
+    // Socket.IO
     window.clientSocket = io.connect();
+
+    // Minimal auth overlay (no webpack build needed)
+    async function initAuthOverlay() {
+      const el = document.getElementById('auth-overlay');
+      const statusEl = document.getElementById('auth-status');
+      const nameEl = document.getElementById('auth-name');
+      const saveBtn = document.getElementById('auth-save-name');
+      const logoutBtn = document.getElementById('auth-logout');
+      const gBtn = document.getElementById('google-btn');
+
+      async function refreshMe() {
+        const r = await fetch('/api/me');
+        const data = await r.json();
+        if (data && data.user) {
+          statusEl.textContent = `已登入：${data.user.displayName}`;
+          nameEl.value = data.user.displayName || '';
+          logoutBtn.style.display = 'inline-block';
+          saveBtn.style.display = 'inline-block';
+        } else {
+          statusEl.textContent = '未登入（可匿名遊玩）';
+          logoutBtn.style.display = 'none';
+          saveBtn.style.display = 'none';
+        }
+      }
+
+      saveBtn.addEventListener('click', async () => {
+        const displayName = (nameEl.value || '').trim();
+        const r = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ displayName })
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          alert(data.message || data.error || '更新失敗');
+          return;
+        }
+        await refreshMe();
+      });
+
+      logoutBtn.addEventListener('click', async () => {
+        await fetch('/auth/logout', { method: 'POST' });
+        await refreshMe();
+        location.reload();
+      });
+
+      // load config then GIS
+      const cfg = await (await fetch('/api/config')).json();
+      if (!cfg.googleClientId) {
+        gBtn.textContent = 'Google 登入未設定（缺 GOOGLE_CLIENT_ID）';
+        gBtn.disabled = true;
+        await refreshMe();
+        return;
+      }
+
+      // Load Google script
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.defer = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+
+      window.google.accounts.id.initialize({
+        client_id: cfg.googleClientId,
+        callback: async (resp) => {
+          const r = await fetch('/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: resp.credential })
+          });
+          const data = await r.json();
+          if (!r.ok) {
+            alert(data.error || '登入失敗');
+            return;
+          }
+          await refreshMe();
+          // ensure socket reconnects with cookie
+          window.clientSocket.disconnect();
+          window.clientSocket.connect();
+        }
+      });
+
+      // Render a real Google button inside #google-render
+      const render = document.getElementById('google-render');
+      window.google.accounts.id.renderButton(render, { theme: 'outline', size: 'medium' });
+      gBtn.style.display = 'none';
+
+      await refreshMe();
+    }
+
+    window.addEventListener('load', initAuthOverlay);
   </script>
+
+  <script src='bundle.js'></script>
 </head>
 <body>
-  <div id='game-wrapper'>
-    <div id='game-container'>
-
+  <div id='auth-overlay'>
+    <div id='auth-status'>載入中…</div>
+    <div class='auth-row'>
+      <div id='google-render'></div>
+      <button id='google-btn'>Google 登入</button>
+      <button id='auth-logout' style='display:none'>登出</button>
     </div>
+    <div class='auth-row'>
+      <input id='auth-name' placeholder='自訂名稱 (1..24)' maxlength='24' />
+      <button id='auth-save-name' style='display:none'>儲存名稱</button>
+    </div>
+  </div>
+
+  <div id='game-wrapper'>
+    <div id='game-container'></div>
   </div>
 </body>
 </html>

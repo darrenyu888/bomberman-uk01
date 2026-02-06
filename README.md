@@ -58,6 +58,20 @@ PORT=3000 npm start
 
 ---
 
+## 登入 / 個人資料 / 戰績（UK01）
+
+### Google 登入（輕量方案）
+本 fork 支援使用 **Google Identity Services** 進行登入：
+- 登入後會在後台保存：`google sub`、**Gmail/email**（供後台查詢）、頭像、displayName
+- 使用者可在頁面左上角浮層修改自己的 **displayName**（1..24 字）
+
+#### 環境變數
+啟動 server 前請設定：
+- `GOOGLE_CLIENT_ID`：Google OAuth Client ID
+- `JWT_SECRET`：簽發登入 cookie 用的 secret（務必改成強密碼字串）
+
+---
+
 ## AI bots（用法 / 參數）
 
 ### 房間建立限制（UK01）

@@ -6,11 +6,17 @@ const { TILE_SIZE, EMPTY_CELL } = require('./constants');
 
 var runningGames = new Map();
 
-function clearMatchTimer(game) {
+// Do NOT store Node.js Timeout objects on the game object (Socket.IO cannot serialize them and may crash).
+const matchTimersByGameId = new Map(); // gameId -> timeoutId
+
+function clearMatchTimer(gameOrId) {
   try {
-    if (game && game._matchTimer) {
-      clearTimeout(game._matchTimer);
-      game._matchTimer = null;
+    const gameId = (typeof gameOrId === 'string') ? gameOrId : (gameOrId && gameOrId.id);
+    if (!gameId) return;
+    const t = matchTimersByGameId.get(gameId);
+    if (t) {
+      clearTimeout(t);
+      matchTimersByGameId.delete(gameId);
     }
   } catch (_) {}
 }
@@ -39,7 +45,7 @@ function emitWinAndCleanup({ game, reason }) {
 
   // stop bots + cleanup running game state after a short grace period
   try { Bots.stopBotsForGame(game_id); } catch (_) {}
-  clearMatchTimer(game);
+  clearMatchTimer(game_id);
 
   setTimeout(() => {
     try { runningGames.delete(game_id); } catch (_) {}
@@ -50,7 +56,7 @@ var Play = {
   onLeaveGame: function (data) {
     // Stop bots and drop running game state
     const g = runningGames.get(this.socket_game_id);
-    if (g) clearMatchTimer(g);
+    if (g) clearMatchTimer(g.id);
 
     Bots.stopBotsForGame(this.socket_game_id);
     runningGames.delete(this.socket_game_id);
@@ -88,8 +94,8 @@ var Play = {
     // Hard time limit when only humans remain: 3 minutes max per match.
     // (Still applies even if bots exist; it prevents endless games.)
     try {
-      clearMatchTimer(game);
-      game._matchTimer = setTimeout(() => {
+      clearMatchTimer(game.id);
+      const tid = setTimeout(() => {
         try {
           const g = runningGames.get(game.id);
           if (!g) return;
@@ -100,6 +106,7 @@ var Play = {
           emitWinAndCleanup({ game: g, reason: 'timeout_3m' });
         } catch (_) {}
       }, 180000);
+      matchTimersByGameId.set(game.id, tid);
     } catch (_) {}
 
     // Record gamesPlayed for authenticated humans

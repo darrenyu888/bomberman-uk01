@@ -87,6 +87,7 @@ class Preload extends Phaser.State {
 
     // Cosmetics (paper-doll overlays)
     this.load.image('cosmetic_base', 'images/game/cosmetics/base.png');
+    this.load.image('cosmetic_transparent', 'images/game/cosmetics/transparent.png');
     for (let i = 1; i <= 10; i++) {
       this.load.image(`cosmetic_hat_${i}`, `images/game/cosmetics/hat_${i}.png`);
       this.load.image(`cosmetic_hair_${i}`, `images/game/cosmetics/hair_${i}.png`);

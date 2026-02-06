@@ -84,7 +84,7 @@ export default class EnemyPlayer extends Phaser.Sprite {
       const face = parts.face ? ('cosmetic_' + parts.face) : null;
       const pattern = parts.pattern ? ('cosmetic_' + parts.pattern) : null;
 
-      this.alpha = 0.001;
+      try { this.loadTexture('cosmetic_transparent'); } catch (_) {}
 
       add(outfit, 16, 16, 0.98);
       add(pattern,16, 16, 0.99);

@@ -267,8 +267,8 @@ export default class Player extends Phaser.Sprite {
       const face = parts.face ? ('cosmetic_' + parts.face) : null;
       const pattern = parts.pattern ? ('cosmetic_' + parts.pattern) : null;
 
-      // Hide the legacy bomberman sprite underneath (keep physics/body)
-      this.alpha = 0.001;
+      // Hide legacy bomberman sprite underneath (keep physics/body) without affecting children.
+      try { this.loadTexture('cosmetic_transparent'); } catch (_) {}
 
       // offsets tuned for 32x32 sprite
       add(outfit, 16, 16, 0.98);

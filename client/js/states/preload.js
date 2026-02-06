@@ -7,10 +7,16 @@ class Preload extends Phaser.State {
         try { if (window.UK01Log) window.UK01Log(`LOAD_ERR key=${key} url=${file && file.url}`); } catch (_) {}
       });
       this.load.onFileComplete.add((progress, key) => {
-        try { if (window.UK01Log && progress < 100) window.UK01Log(`LOAD ${progress}% ${key}`); } catch (_) {}
+        try {
+          if (window.UK01Loading) window.UK01Loading.set(progress, `載入中：${key}`);
+          if (window.UK01Log && progress < 100) window.UK01Log(`LOAD ${progress}% ${key}`);
+        } catch (_) {}
       });
       this.load.onLoadComplete.add(() => {
-        try { if (window.UK01Log) window.UK01Log('LOAD_DONE'); } catch (_) {}
+        try {
+          if (window.UK01Loading) window.UK01Loading.set(100, '完成');
+          if (window.UK01Log) window.UK01Log('LOAD_DONE');
+        } catch (_) {}
       });
     } catch (_) {}
     // Menu:
@@ -105,6 +111,8 @@ class Preload extends Phaser.State {
   }
 
   create() {
+    // Hide loading overlay
+    try { if (window.UK01Loading) window.UK01Loading.done(); } catch (_) {}
     this.state.start('Menu');
   }
 }

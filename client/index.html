@@ -200,6 +200,15 @@
     <div id='game-container'></div>
   </div>
 
+  <!-- Loading overlay (shown until Phaser preload completes) -->
+  <div id='loading-overlay' class='loading-overlay'>
+    <div class='loading-panel'>
+      <div class='loading-title'>Loading…</div>
+      <div id='loading-sub' class='loading-sub'>資源載入中</div>
+      <div class='loading-bar'><div id='loading-bar-inner' class='loading-bar-inner'></div></div>
+    </div>
+  </div>
+
   <!-- Touch controls overlay (HTML; works even when canvas is letterboxed) -->
   <div id='touch-overlay' class='touch-overlay hidden'>
     <div id='touch-debug' class='touch-debug hidden'></div>
@@ -232,6 +241,22 @@
 
       // Expose so Phaser states can toggle
       window.UK01Menu = { showMenu, showMaps, hideMenu };
+
+      // Loading overlay helpers
+      const loading = document.getElementById('loading-overlay');
+      const loadingSub = document.getElementById('loading-sub');
+      const loadingBar = document.getElementById('loading-bar-inner');
+      window.UK01Loading = {
+        set: (pct, text) => {
+          try {
+            if (typeof pct === 'number') loadingBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+            if (text) loadingSub.textContent = text;
+          } catch (_) {}
+        },
+        done: () => {
+          try { loading.classList.add('hidden'); } catch (_) {}
+        }
+      };
 
       btnNew.addEventListener('click', () => {
         showMaps();

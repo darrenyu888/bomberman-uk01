@@ -155,6 +155,30 @@ body {
 }
 
 /* HTML Menu Overlay (mobile reliable) */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.72);
+}
+.loading-overlay.hidden { display:none; }
+.loading-panel {
+  width: min(92vw, 420px);
+  background: rgba(20, 20, 25, 0.78);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 16px;
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+.loading-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.loading-sub { font-size: 14px; opacity: 0.9; margin-bottom: 12px; }
+.loading-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.loading-bar-inner { height: 100%; width: 0%; background: rgba(0, 229, 255, 0.55); }
+
 .menu-overlay {
   position: fixed;
   inset: 0;

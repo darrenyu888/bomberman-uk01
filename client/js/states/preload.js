@@ -85,6 +85,13 @@ class Preload extends Phaser.State {
     this.load.audio('sfx_death',     ['sfx/death.wav']);
     this.load.audio('bgm_main',      ['sfx/bgm.wav']);
 
+    // Cosmetics (paper-doll overlays)
+    for (let i = 1; i <= 5; i++) {
+      this.load.image(`cosmetic_hat_${i}`, `images/game/cosmetics/hat_${i}.png`);
+      this.load.image(`cosmetic_hair_${i}`, `images/game/cosmetics/hair_${i}.png`);
+      this.load.image(`cosmetic_outfit_${i}`, `images/game/cosmetics/outfit_${i}.png`);
+    }
+
     // Skins:
     this.load.image('bomberman_head_blank',     'images/game/chars/0-face.png');
 

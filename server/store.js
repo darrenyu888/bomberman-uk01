@@ -86,6 +86,17 @@ function updateDisplayName(userId, displayName) {
   return u;
 }
 
+function updateAvatarParts(userId, avatarParts) {
+  const data = readAll();
+  const u = data.users[userId];
+  if (!u) return null;
+  u.avatarParts = avatarParts || null;
+  u.updatedAt = Date.now();
+  data.users[userId] = u;
+  writeAll(data);
+  return u;
+}
+
 function recordGameStart(userIds) {
   const data = readAll();
   for (const id of userIds) {
@@ -117,6 +128,7 @@ module.exports = {
   getUserById,
   getStatsByUserId,
   updateDisplayName,
+  updateAvatarParts,
   recordGameStart,
   recordGameResult,
 };

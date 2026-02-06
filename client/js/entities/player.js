@@ -9,7 +9,7 @@ import { SpoilNotification, Text } from '../helpers/elements';
 
 export default class Player extends Phaser.Sprite {
 
-  constructor({ game, id, spawn, skin }) {
+  constructor({ game, id, spawn, skin, avatarParts }) {
     super(game, spawn.x, spawn.y, 'bomberman_' + skin);
 
     this.game = game;
@@ -51,6 +51,10 @@ export default class Player extends Phaser.Sprite {
 
     this.defineKeyboard()
     this.defineSelf(skin)
+
+    // Paper-doll cosmetics (hair/outfit/hat): simple layered images above base sprite
+    this.avatarParts = avatarParts || null;
+    this.applyAvatarParts(this.avatarParts);
   }
 
   update() {
@@ -229,6 +233,38 @@ export default class Player extends Phaser.Sprite {
   enableKick() {
     this.hasKick = true;
     new SpoilNotification({ game: this.game, asset: 'placeholder_speed', x: this.position.x, y: this.position.y })
+  }
+
+  applyAvatarParts(parts) {
+    try {
+      // clear old
+      if (this._cosmetics) {
+        for (const s of this._cosmetics) {
+          try { s.destroy(); } catch (_) {}
+        }
+      }
+      this._cosmetics = [];
+
+      if (!parts) return;
+      const add = (key, x, y, alpha=1) => {
+        if (!key) return;
+        const spr = this.game.add.sprite(x, y, key);
+        spr.anchor.setTo(0.5);
+        spr.alpha = alpha;
+        this.addChild(spr);
+        this._cosmetics.push(spr);
+      };
+
+      // Preloaded as images: cosmetic_hair_X, cosmetic_outfit_X, cosmetic_hat_X
+      const hair = parts.hair ? ('cosmetic_' + parts.hair) : null;
+      const outfit = parts.outfit ? ('cosmetic_' + parts.outfit) : null;
+      const hat = parts.hat ? ('cosmetic_' + parts.hat) : null;
+
+      // offsets tuned for 32x32 preview sprite
+      add(outfit, 16, 18, 0.95);
+      add(hair,   16, 10, 0.98);
+      add(hat,    16, 6,  0.98);
+    } catch (_) {}
   }
 
   activateGhost() {

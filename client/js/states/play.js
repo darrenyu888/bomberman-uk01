@@ -163,7 +163,8 @@ class Play extends Phaser.State {
         game:   this.game,
         id:     player.id,
         spawn:  player.spawn,
-        skin:   player.skin
+        skin:   player.skin,
+        avatarParts: player.avatarParts || null,
       }
 
       if ((local && player === local) || player.id === clientSocket.id) {
@@ -177,7 +178,7 @@ class Play extends Phaser.State {
     if (!this.player && all.length) {
       const first = all.find(p => p && !(typeof p.id === 'string' && p.id.startsWith('bot:'))) || all[0];
       if (first) {
-        this.player = new Player({ game: this.game, id: first.id, spawn: first.spawn, skin: first.skin });
+        this.player = new Player({ game: this.game, id: first.id, spawn: first.spawn, skin: first.skin, avatarParts: first.avatarParts || null });
       }
     }
   }

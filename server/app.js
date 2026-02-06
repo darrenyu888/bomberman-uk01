@@ -57,7 +57,7 @@ app.get('/api/me', (req, res) => {
     if (!user) return res.json({ user: null });
 
     const stats = Store.getStatsByUserId(user.id);
-    res.json({ user: { id: user.id, displayName: user.displayName }, stats });
+    res.json({ user: { id: user.id, displayName: user.displayName, avatarParts: user.avatarParts || null }, stats });
   } catch (_) {
     res.json({ user: null });
   }
@@ -133,10 +133,33 @@ app.post('/api/profile', (req, res) => {
       return res.status(400).json({ error: 'INVALID_NAME', message: 'displayName 長度需 1..24' });
     }
 
-    const user = Store.updateDisplayName(userId, displayName);
+    // Optional avatar parts
+    let avatarParts = req.body && req.body.avatarParts;
+
+    if (avatarParts != null) {
+      // validate basic shape: { hair: string|null, outfit: string|null, hat: string|null }
+      const norm = {};
+      const pick = (k, allowedPrefix) => {
+        const v = (avatarParts && avatarParts[k]) || '';
+        if (!v) return null;
+        const s = v.toString();
+        if (!s.startsWith(allowedPrefix)) return null;
+        return s;
+      };
+      norm.hair = pick('hair', 'hair_');
+      norm.outfit = pick('outfit', 'outfit_');
+      norm.hat = pick('hat', 'hat_');
+      avatarParts = norm;
+    }
+
+    let user = Store.updateDisplayName(userId, displayName);
     if (!user) return res.status(404).json({ error: 'USER_NOT_FOUND' });
 
-    res.json({ ok: true, user: { id: user.id, displayName: user.displayName } });
+    if (avatarParts != null) {
+      user = Store.updateAvatarParts(userId, avatarParts) || user;
+    }
+
+    res.json({ ok: true, user: { id: user.id, displayName: user.displayName, avatarParts: user.avatarParts || null } });
   } catch (e) {
     res.status(400).json({ error: 'BAD_REQUEST' });
   }

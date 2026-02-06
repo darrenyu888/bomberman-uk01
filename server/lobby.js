@@ -64,6 +64,7 @@ var Lobby = {
       if (p && this.user) {
         p.userId = this.user.id;
         p.displayName = this.user.displayName;
+        p.avatarParts = this.user.avatarParts || null;
       }
     } catch (_) {}
 

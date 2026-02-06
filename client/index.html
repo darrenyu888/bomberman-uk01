@@ -26,6 +26,11 @@
       const toggleBtn = document.getElementById('auth-toggle');
       const audioBtn = document.getElementById('audio-toggle');
 
+      const hairSel = document.getElementById('avatar-hair');
+      const outfitSel = document.getElementById('avatar-outfit');
+      const hatSel = document.getElementById('avatar-hat');
+      const avatarSaveBtn = document.getElementById('avatar-save');
+
       // Audio mute toggle (persist in localStorage)
       function applyMuteState() {
         const muted = localStorage.getItem('uk01_muted') === '1';
@@ -61,11 +66,18 @@
           nameEl.value = data.user.displayName || '';
           logoutBtn.style.display = 'inline-block';
           saveBtn.style.display = 'inline-block';
+          avatarSaveBtn.style.display = 'inline-block';
+
+          const parts = (data.user.avatarParts) || {};
+          hairSel.value = parts.hair || '';
+          outfitSel.value = parts.outfit || '';
+          hatSel.value = parts.hat || '';
         } else {
           window.currentUser = null;
           statusEl.textContent = '未登入（可匿名遊玩）';
           logoutBtn.style.display = 'none';
           saveBtn.style.display = 'none';
+          avatarSaveBtn.style.display = 'none';
         }
       }
 
@@ -82,6 +94,29 @@
           return;
         }
         await refreshMe();
+      });
+
+      avatarSaveBtn.addEventListener('click', async () => {
+        const displayName = (nameEl.value || '').trim();
+        const avatarParts = {
+          hair: (hairSel.value || ''),
+          outfit: (outfitSel.value || ''),
+          hat: (hatSel.value || ''),
+        };
+
+        const r = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ displayName: displayName || 'Player', avatarParts })
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          alert(data.message || data.error || '更新失敗');
+          return;
+        }
+        await refreshMe();
+        // reload to ensure cosmetics apply for this session
+        location.reload();
       });
 
       logoutBtn.addEventListener('click', async () => {
@@ -161,6 +196,34 @@
       <div class='auth-row'>
         <input id='auth-name' placeholder='自訂名稱 (1..24)' maxlength='24' />
         <button id='auth-save-name' style='display:none'>儲存名稱</button>
+      </div>
+
+      <div class='auth-row'>
+        <select id='avatar-hair'>
+          <option value=''>Hair: (none)</option>
+          <option value='hair_1'>Hair 1</option>
+          <option value='hair_2'>Hair 2</option>
+          <option value='hair_3'>Hair 3</option>
+          <option value='hair_4'>Hair 4</option>
+          <option value='hair_5'>Hair 5</option>
+        </select>
+        <select id='avatar-outfit'>
+          <option value=''>Outfit: (none)</option>
+          <option value='outfit_1'>Outfit 1</option>
+          <option value='outfit_2'>Outfit 2</option>
+          <option value='outfit_3'>Outfit 3</option>
+          <option value='outfit_4'>Outfit 4</option>
+          <option value='outfit_5'>Outfit 5</option>
+        </select>
+        <select id='avatar-hat'>
+          <option value=''>Hat: (none)</option>
+          <option value='hat_1'>Hat 1</option>
+          <option value='hat_2'>Hat 2</option>
+          <option value='hat_3'>Hat 3</option>
+          <option value='hat_4'>Hat 4</option>
+          <option value='hat_5'>Hat 5</option>
+        </select>
+        <button id='avatar-save' style='display:none'>儲存造型</button>
       </div>
     </div>
   </div>

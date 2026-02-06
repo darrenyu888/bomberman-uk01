@@ -18,7 +18,7 @@ function socketAuthMiddleware(socket, next) {
     const user = Store.getUserById(userId);
     if (!user) return next();
 
-    socket.user = { id: user.id, displayName: user.displayName };
+    socket.user = { id: user.id, displayName: user.displayName, avatarParts: user.avatarParts || null };
     return next();
   } catch (_) {
     // ignore invalid tokens

@@ -24,6 +24,27 @@
       const logoutBtn = document.getElementById('auth-logout');
       const gBtn = document.getElementById('google-btn');
       const toggleBtn = document.getElementById('auth-toggle');
+      const audioBtn = document.getElementById('audio-toggle');
+
+      // Audio mute toggle (persist in localStorage)
+      function applyMuteState() {
+        const muted = localStorage.getItem('uk01_muted') === '1';
+        audioBtn.textContent = muted ? '🔇' : '🔊';
+        try {
+          const g = window.__phaserGame;
+          if (g && g.sound) g.sound.mute = muted;
+        } catch (_) {}
+      }
+
+      audioBtn.addEventListener('click', () => {
+        const muted = localStorage.getItem('uk01_muted') === '1';
+        localStorage.setItem('uk01_muted', muted ? '0' : '1');
+        applyMuteState();
+      });
+
+      // Keep applying in case Phaser game initializes later
+      applyMuteState();
+      setInterval(applyMuteState, 1500);
 
       toggleBtn.addEventListener('click', () => {
         el.classList.toggle('minimized');
@@ -126,6 +147,7 @@
   <div id='auth-overlay' class='minimized'>
     <div class='auth-row' style='margin-top:0'>
       <div id='auth-status' style='flex:1'>載入中…</div>
+      <button id='audio-toggle' title='靜音/取消靜音'>🔊</button>
       <button id='auth-toggle' title='顯示/收合'>帳號</button>
     </div>
 

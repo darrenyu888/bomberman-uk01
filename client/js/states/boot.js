@@ -7,29 +7,19 @@ class Boot extends Phaser.State {
     // The game pauses when I open a new tab in the same window, but does not pause when I focus on another application
     this.game.stage.disableVisibilityChange = true;
 
-    // Responsive scaling (mobile-friendly, no distortion)
-    // Use USER_SCALE with a "cover" strategy:
-    // - keep aspect ratio (no stretch)
-    // - fill the screen (may crop a bit)
-    this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
+    // Responsive scaling (stable on mobile, keeps aspect ratio)
+    // SHOW_ALL avoids distortion and keeps input coordinates consistent.
+    // It may add letterboxing on some aspect ratios, but gameplay + touch controls remain reliable.
+    this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
     this.game.scale.pageAlignHorizontally = true;
     this.game.scale.pageAlignVertically = true;
 
-    const baseW = this.game.width;
-    const baseH = this.game.height;
-
-    const applyCoverScale = () => {
-      const w = window.innerWidth || baseW;
-      const h = window.innerHeight || baseH;
-      const s = Math.max(w / baseW, h / baseH);
-      try {
-        this.game.scale.setUserScale(s, s);
-        this.game.scale.refresh();
-      } catch (_) {}
+    const refresh = () => {
+      try { this.game.scale.refresh(); } catch (_) {}
     };
 
-    window.addEventListener('resize', applyCoverScale);
-    applyCoverScale();
+    window.addEventListener('resize', refresh);
+    refresh();
 
     new Text({
       game: this.game,

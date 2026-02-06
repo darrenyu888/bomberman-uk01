@@ -220,8 +220,13 @@ class Play extends Phaser.State {
   createTouchControls() {
     if (!this.player) return;
 
-    // Only show on touch devices
-    if (!this.game.device || !this.game.device.touch) return;
+    // Only show on touch-capable devices (Phaser detection can be flaky on some mobile browsers)
+    const isTouchCapable = (
+      (this.game.device && (this.game.device.touch || this.game.device.iOS || this.game.device.android)) ||
+      (typeof window !== 'undefined' && ('ontouchstart' in window)) ||
+      (typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0))
+    );
+    if (!isTouchCapable) return;
 
     const g = this.game.add.group();
     g.fixedToCamera = true;
@@ -253,11 +258,27 @@ class Play extends Phaser.State {
     const w = this.game.width;
     const h = this.game.height;
 
+    // iOS/Android safe-area padding (home indicator / browser UI)
+    const cssSafeBottom = (() => {
+      try {
+        const v = getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)');
+        const n = parseInt((v || '0').toString().replace('px', '').trim(), 10);
+        return Number.isFinite(n) ? n : 0;
+      } catch (_) {
+        return 0;
+      }
+    })();
+
+    const padBottom = Math.max(28, cssSafeBottom + 18);
+
+    // Scale controls a bit based on screen size
+    const s = Math.max(0.85, Math.min(1.15, Math.min(w, h) / 700));
+
     // Virtual joystick (4-direction snap)
-    const baseX = 125;
-    const baseY = h - 160;
-    const baseR = 70;
-    const knobR = 36;
+    const baseX = 125 * s;
+    const baseY = h - (185 * s) - padBottom;
+    const baseR = 70 * s;
+    const knobR = 36 * s;
 
     const base = this.game.add.graphics(0, 0);
     base.beginFill(0x111111, 0.22);
@@ -329,9 +350,9 @@ class Play extends Phaser.State {
 
     // Bomb button (right side)
     mkBtn({
-      x: w - 110,
-      y: h - 140,
-      r: 54,
+      x: w - (115 * s),
+      y: h - (165 * s) - padBottom,
+      r: 54 * s,
       label: '💣',
       fill: 0x7a1cff,
       alpha: 0.32,

@@ -4,7 +4,7 @@
 }
 
 html {
-  background: #DEDEDE;
+  background: #000; /* avoid gray sidebars on mobile */
 }
 
 html, body, #game-wrapper, #game-container {

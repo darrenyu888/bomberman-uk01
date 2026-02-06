@@ -7,9 +7,9 @@ class Boot extends Phaser.State {
     // The game pauses when I open a new tab in the same window, but does not pause when I focus on another application
     this.game.stage.disableVisibilityChange = true;
 
-    // Responsive scaling (keep a fixed logical resolution; scale to fit viewport)
-    // RESIZE mode can create large blank areas on tall mobile screens because the world is smaller than the viewport.
-    this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
+    // Responsive scaling
+    // Use EXACT_FIT to fill the whole screen on mobile (avoids big side bars in landscape).
+    this.game.scale.scaleMode = Phaser.ScaleManager.EXACT_FIT;
     this.game.scale.pageAlignHorizontally = true;
     this.game.scale.pageAlignVertically = true;
 

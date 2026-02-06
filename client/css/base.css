@@ -12,6 +12,12 @@ html, body, #game-wrapper, #game-container {
   width: 100%;
 }
 
+body {
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  touch-action: none; /* prevent scroll/zoom gestures from stealing input */
+}
+
 #game-wrapper {
   width: 100vw;
   height: 100vh;
@@ -33,6 +39,7 @@ html, body, #game-wrapper, #game-container {
   height: auto;
   max-width: 100vw;
   max-height: 100vh;
+  touch-action: none;
 }
 
 /* Auth overlay (Google login + display name) */

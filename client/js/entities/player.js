@@ -252,7 +252,7 @@ export default class Player extends Phaser.Sprite {
         spr.anchor.setTo(0.5);
         // cosmetics assets are 128x128 but we display them slightly larger than 32x32
         // so the full body + tail are visible.
-        spr.scale.setTo(0.30);
+        spr.scale.setTo(0.34);
         spr.alpha = alpha;
         this.addChild(spr);
         this._cosmetics.push(spr);

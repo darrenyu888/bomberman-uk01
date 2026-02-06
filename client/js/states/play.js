@@ -33,9 +33,22 @@ class Play extends Phaser.State {
     // Keep Phaser touch controls disabled to avoid double-input on mobile
     // this.createTouchControls();
 
-    // SFX
+    // SFX / BGM
     this.sfxPortal = this.game.add.audio('sfx_portal');
     this.sfxSpeed = this.game.add.audio('sfx_speed');
+    this.sfxExplosion = this.game.add.audio('sfx_explosion');
+    this.sfxDeath = this.game.add.audio('sfx_death');
+
+    // Background music (loop)
+    try {
+      if (this.game._bgm && this.game._bgm.stop) {
+        this.game._bgm.stop();
+      }
+      this.game._bgm = this.game.add.audio('bgm_main');
+      this.game._bgm.loop = true;
+      this.game._bgm.volume = 0.18;
+      this.game._bgm.play();
+    } catch (_) {}
 
     this.game.time.events.loop(400 , this.stopAnimationLoop.bind(this));
   }
@@ -189,6 +202,8 @@ class Play extends Phaser.State {
     if (!player.alive) return;
     // Shield powerup: brief invulnerability
     if (player.isShielded && player.isShielded()) return;
+
+    try { if (this.sfxDeath) this.sfxDeath.play(); } catch (_) {}
 
     clientSocket.emit('player died', { col: player.currentCol(), row: player.currentRow() });
     player.becomesDead()
@@ -472,6 +487,8 @@ class Play extends Phaser.State {
   onDetonateBomb({ bomb_id, blastedCells }) {
     // Remove Bomb:
     findAndDestroyFrom(bomb_id, this.bombs)
+
+    try { if (this.sfxExplosion) this.sfxExplosion.play(); } catch (_) {}
 
     // Render Blast:
     for (let cell of blastedCells) {

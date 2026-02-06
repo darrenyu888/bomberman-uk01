@@ -17,6 +17,12 @@ class Win extends Phaser.State {
     // Hide touch overlay on end screen
     try { if (window.UK01Touch && window.UK01Touch.hide) window.UK01Touch.hide(); } catch (_) {}
 
+    // Stop BGM on end screen
+    try {
+      const g = this.game;
+      if (g && g._bgm && g._bgm.stop) g._bgm.stop();
+    } catch (_) {}
+
     new Text({
       game: this.game,
       x: this.game.world.centerX,

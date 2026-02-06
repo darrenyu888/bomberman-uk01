@@ -78,9 +78,12 @@ class Preload extends Phaser.State {
     this.load.spritesheet('speed_fx',  'images/game/speed_fx.png', 35, 35);
     this.load.image('ghost_icon', 'images/game/ghost_icon.png');
 
-    // SFX (small + optional)
-    this.load.audio('sfx_portal', ['sfx/portal.wav']);
-    this.load.audio('sfx_speed',  ['sfx/speed.wav']);
+    // SFX / BGM (mobile may require user gesture to unlock audio)
+    this.load.audio('sfx_portal',    ['sfx/portal.wav']);
+    this.load.audio('sfx_speed',     ['sfx/speed.wav']);
+    this.load.audio('sfx_explosion', ['sfx/explosion.wav']);
+    this.load.audio('sfx_death',     ['sfx/death.wav']);
+    this.load.audio('bgm_main',      ['sfx/bgm.wav']);
 
     // Skins:
     this.load.image('bomberman_head_blank',     'images/game/chars/0-face.png');

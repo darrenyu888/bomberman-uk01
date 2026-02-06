@@ -9,10 +9,23 @@ html {
 
 html, body, #game-wrapper, #game-container {
   height: 100%;
+  width: 100%;
+}
+
+#game-wrapper {
+  width: 100vw;
+  height: 100vh;
 }
 
 #game-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Let Phaser manage canvas size; avoid centering that can create the "small canvas in middle" effect */
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Make Phaser canvas fill viewport */
+#game-container canvas {
+  width: 100vw !important;
+  height: 100vh !important;
 }

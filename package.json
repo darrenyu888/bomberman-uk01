@@ -2,9 +2,13 @@
   "name": "bombattack",
   "version": "0.0.1",
   "description": "Bomberman like game",
-  "main": "server.js",
+  "private": true,
+  "main": "server/app.js",
   "scripts": {
-    "server": "webpack && node server/app.js",
+    "build": "webpack --mode=development",
+    "build:prod": "webpack --mode=production",
+    "test": "node --test",
+    "server": "npm run build && node server/app.js",
     "start": "node server/app.js"
   },
   "author": "Dmytro Vasin",
@@ -17,24 +21,20 @@
     "webpack"
   ],
   "engines": {
-    "node": "10.4.1",
-    "yarn": "1.16.0"
+    "node": ">=18"
   },
   "dependencies": {
-    "express": "^4.16.2",
-    "faker": "^4.1.0",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7",
-    "serve-favicon": "^2.4.5",
-    "socket.io": "^2.0.4",
-    "uuid": "^3.1.0",
-    "yarn": "^1.16.0"
+    "@faker-js/faker": "^8.4.1",
+    "express": "^4.18.3",
+    "serve-favicon": "^2.5.0",
+    "socket.io": "^4.7.5",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.0.0-beta.31",
-    "@babel/preset-env": "^7.0.0-beta.31",
-    "babel-loader": "8.0.0-beta.0",
-    "webpack": "4.31.0",
-    "webpack-cli": "^3.3.2"
+    "@babel/core": "^7.26.9",
+    "@babel/preset-env": "^7.26.9",
+    "babel-loader": "^9.2.1",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^5.1.4"
   }
 }

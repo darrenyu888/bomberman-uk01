@@ -28,6 +28,11 @@ class SelectMap extends Phaser.State {
     // WARN: https://github.com/netgfx/PhaseSlider/issues/1
     let hotMapImage = new Phaser.Image(this.game, 0, 0, 'hot_map_preview');
     let coldMapImage = new Phaser.Image(this.game, 0, 0, 'cold_map_preview');
+    let arenaMapImage = new Phaser.Image(this.game, 0, 0, 'arena_map_preview');
+    let openMapImage  = new Phaser.Image(this.game, 0, 0, 'open_map_preview');
+    let runeLabImage  = new Phaser.Image(this.game, 0, 0, 'rune_lab_preview');
+    let mirrorTempleImage  = new Phaser.Image(this.game, 0, 0, 'mirror_temple_preview');
+    let trapGardenImage  = new Phaser.Image(this.game, 0, 0, 'trap_garden_preview');
 
     this.slider.createSlider({
       x: this.game.world.centerX - hotMapImage.width / 2,
@@ -36,7 +41,7 @@ class SelectMap extends Phaser.State {
       height: hotMapImage.height,
       customHandlePrev: 'prev',
       customHandleNext: 'next',
-      objects: [hotMapImage, coldMapImage]
+      objects: [hotMapImage, coldMapImage, arenaMapImage, openMapImage, runeLabImage, mirrorTempleImage, trapGardenImage]
     });
 
     new Button({
@@ -59,7 +64,9 @@ class SelectMap extends Phaser.State {
     clientSocket.emit('create game', map_name, this.joinToNewGame.bind(this));
   }
 
-  joinToNewGame(game_id) {
+  joinToNewGame(payload) {
+    // server callback may return either a plain id string or an object { game_id }
+    const game_id = (payload && payload.game_id) ? payload.game_id : payload;
     this.state.start('PendingGame', true, false, game_id);
   }
 }

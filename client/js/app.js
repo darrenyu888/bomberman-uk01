@@ -8,7 +8,8 @@ import Win from './states/win';
 
 class Game extends Phaser.Game {
   constructor() {
-    super(980, 630, Phaser.AUTO, 'game-container');
+    // Start with viewport size; Boot state will keep it in sync on resize
+    super(window.innerWidth, window.innerHeight, Phaser.AUTO, 'game-container');
 
     // Tell Phaser to use setTimeOut even if RAF(request animation frame) is available.
     this.config['forceSetTimeOut'] = true

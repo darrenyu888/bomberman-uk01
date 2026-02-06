@@ -2,15 +2,16 @@ const { EXPLOSION_TIME, DESTRUCTIBLE_CELL, NON_DESTRUCTIBLE_CELL, SPOIL_CHANCE }
 
 const { Spoil } = require('./spoil.js');
 
-var uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 
 class Bomb {
 
-  constructor({ game, col, row, power }) {
+  constructor({ game, col, row, power, owner_id }) {
     this.id = uuidv4();
 
     this.game = game;
     this.power = power
+    this.owner_id = owner_id
     this.explosion_time = EXPLOSION_TIME
 
     this.col = col

@@ -9,15 +9,27 @@ class Preload extends Phaser.State {
     this.load.spritesheet('check_icon', 'images/menu/accepts.png', 75, 75);
     this.load.spritesheet('list_icon',  'images/menu/game_enter.png', 75, 75);
 
-    this.load.image('hot_map_preview',  'images/menu/hot_map_preview.png');
-    this.load.image('cold_map_preview', 'images/menu/cold_map_preview.png');
+    this.load.image('hot_map_preview',   'images/menu/hot_map_preview.png');
+    this.load.image('cold_map_preview',  'images/menu/cold_map_preview.png');
+    // cache-bust to ensure clients fetch the updated preview
+    this.load.image('arena_map_preview', 'images/menu/arena_map_preview.png?v=2');
+    // cache-bust to ensure clients fetch the updated preview
+    this.load.image('open_map_preview',  'images/menu/open_map_preview.png?v=3');
+    this.load.image('rune_lab_preview',  'images/menu/rune_lab_preview.png?v=1');
+    this.load.image('mirror_temple_preview', 'images/menu/mirror_temple_preview.png?v=1');
+    this.load.image('trap_garden_preview', 'images/menu/trap_garden_preview.png?v=1');
     this.load.image('prev',             'images/menu/left_arrow.png');
     this.load.image('next',             'images/menu/right_arrow.png');
 
     // Map:
     this.load.image('tiles',      'maps/tileset.png');
-    this.load.tilemap('hot_map',  'maps/hot_map.json', null, Phaser.Tilemap.TILED_JSON);
-    this.load.tilemap('cold_map', 'maps/cold_map.json', null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('hot_map',   'maps/hot_map.json', null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('cold_map',  'maps/cold_map.json', null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('arena_map', 'maps/arena_map.json', null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('open_map',  'maps/open_map.json',  null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('rune_lab',  'maps/rune_lab.json',  null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('mirror_temple',  'maps/mirror_temple.json',  null, Phaser.Tilemap.TILED_JSON);
+    this.load.tilemap('trap_garden',  'maps/trap_garden.json',  null, Phaser.Tilemap.TILED_JSON);
 
 
     // Game:
@@ -42,6 +54,15 @@ class Preload extends Phaser.State {
     this.load.image('placeholder_power', 'images/game/placeholder_power.png');
     this.load.image('placeholder_speed', 'images/game/placeholder_speed.png');
     this.load.image('placeholder_time',  'images/game/placeholder_time.png');
+
+    // Special tiles FX
+    this.load.spritesheet('portal_fx', 'images/game/portal_fx.png', 35, 35);
+    this.load.spritesheet('speed_fx',  'images/game/speed_fx.png', 35, 35);
+    this.load.image('ghost_icon', 'images/game/ghost_icon.png');
+
+    // SFX (small + optional)
+    this.load.audio('sfx_portal', ['sfx/portal.wav']);
+    this.load.audio('sfx_speed',  ['sfx/speed.wav']);
 
     // Skins:
     this.load.image('bomberman_head_blank',     'images/game/chars/0-face.png');

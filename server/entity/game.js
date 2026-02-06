@@ -3,14 +3,15 @@ const { TILE_SIZE, EMPTY_CELL, DESTRUCTIBLE_CELL, NON_DESTRUCTIBLE_CELL, SKINS }
 var { Player } = require('./player');
 var { Bomb } = require('./bomb.js');
 
-var uuidv4 = require('uuid/v4');
-var faker = require('faker');
+const { v4: uuidv4 } = require('uuid');
+const { faker } = require('@faker-js/faker');
 
 class Game {
 
   constructor({ map_name }) {
     this.id           = uuidv4();
-    this.name         = faker.commerce.color()
+    // @faker-js/faker v8+: commerce.color() removed; use color.human()
+    this.name         = faker.color.human()
     this.map_name     = map_name;
 
     this.layer_info   = require('../../client/maps/' + this.map_name + '.json').layers[0]
@@ -103,13 +104,36 @@ class Game {
     return mapMatrix;
   }
 
-  addBomb({ col, row, power }) {
-    let bomb = new Bomb({ game: this, col: col, row: row, power: power });
+  addBomb({ col, row, power, owner_id }) {
+    // disallow stacking bombs
+    for (const b of this.bombs.values()) {
+      if (b && b.col === col && b.row === row) return false;
+    }
+
+    // only allow bombs on empty cells
+    if (this.getMapCell(row, col) !== EMPTY_CELL) return false;
+
+    let bomb = new Bomb({ game: this, col: col, row: row, power: power, owner_id });
     if ( this.bombs.get(bomb.id) ) {
       return false
     }
     this.bombs.set(bomb.id, bomb);
     return bomb
+  }
+
+  deleteBomb(bomb_id) {
+    this.bombs.delete(bomb_id);
+  }
+
+  findBomb(bomb_id) {
+    return this.bombs.get(bomb_id);
+  }
+
+  findBombAt(row, col) {
+    for (const b of this.bombs.values()) {
+      if (b && b.row === row && b.col === col) return b;
+    }
+    return null;
   }
 
   getMapCell(row, col) {

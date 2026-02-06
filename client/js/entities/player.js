@@ -1,6 +1,7 @@
 import {
   PING, TILE_SIZE, MAX_SPEED, STEP_SPEED, INITIAL_SPEED, SPEED, POWER, DELAY,
-  MIN_DELAY, STEP_DELAY, INITIAL_DELAY, INITIAL_POWER, STEP_POWER
+  MIN_DELAY, STEP_DELAY, INITIAL_DELAY, INITIAL_POWER, STEP_POWER,
+  SHIELD, REMOTE, KICK, GHOST, SHIELD_DURATION_MS, GHOST_DURATION_MS
 } from '../utils/constants';
 
 import Info from './info';
@@ -19,11 +20,25 @@ export default class Player extends Phaser.Sprite {
     this.delay = INITIAL_DELAY;
     this.power = INITIAL_POWER;
     this.speed = INITIAL_SPEED;
+    this.tileSpeedMultiplier = 1.0;
     this._lastBombTime = 0;
+
+    // powerups
+    this.shieldUntil = 0;
+    this.ghostUntil = 0;
+    this.hasRemote = false;
+    this.hasKick = false;
 
     this.game.add.existing(this);
     this.game.physics.arcade.enable(this);
     this.body.setSize(20, 20, 6, 6);
+
+    // Touch controls state (set by Play state UI)
+    this.touchLeft = false;
+    this.touchRight = false;
+    this.touchUp = false;
+    this.touchDown = false;
+    this.touchBomb = false;
 
     game.time.events.loop(PING , this.positionUpdaterLoop.bind(this));
 
@@ -49,10 +64,19 @@ export default class Player extends Phaser.Sprite {
   }
 
   defineKeyboard() {
+    // Arrow keys
     this.upKey    = this.game.input.keyboard.addKey(Phaser.Keyboard.UP)
     this.downKey  = this.game.input.keyboard.addKey(Phaser.Keyboard.DOWN)
     this.leftKey  = this.game.input.keyboard.addKey(Phaser.Keyboard.LEFT)
     this.rightKey = this.game.input.keyboard.addKey(Phaser.Keyboard.RIGHT)
+
+    // WASD
+    this.wKey = this.game.input.keyboard.addKey(Phaser.Keyboard.W)
+    this.aKey = this.game.input.keyboard.addKey(Phaser.Keyboard.A)
+    this.sKey = this.game.input.keyboard.addKey(Phaser.Keyboard.S)
+    this.dKey = this.game.input.keyboard.addKey(Phaser.Keyboard.D)
+
+    // Bomb
     this.spaceKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR)
   }
 
@@ -60,19 +84,26 @@ export default class Player extends Phaser.Sprite {
     this.body.velocity.set(0);
     let animationsArray = []
 
-    if (this.leftKey.isDown){
-      this.body.velocity.x = -this.speed;
+    const effectiveSpeed = this.speed * (this.tileSpeedMultiplier || 1.0);
+
+    const left  = this.leftKey.isDown  || (this.aKey && this.aKey.isDown) || this.touchLeft;
+    const right = this.rightKey.isDown || (this.dKey && this.dKey.isDown) || this.touchRight;
+    const up    = this.upKey.isDown    || (this.wKey && this.wKey.isDown) || this.touchUp;
+    const down  = this.downKey.isDown  || (this.sKey && this.sKey.isDown) || this.touchDown;
+
+    if (left){
+      this.body.velocity.x = -effectiveSpeed;
       animationsArray.push('left')
-    } else if (this.rightKey.isDown) {
-      this.body.velocity.x = this.speed;
+    } else if (right) {
+      this.body.velocity.x = effectiveSpeed;
       animationsArray.push('right')
     }
 
-    if (this.upKey.isDown) {
-      this.body.velocity.y = -this.speed;
+    if (up) {
+      this.body.velocity.y = -effectiveSpeed;
       animationsArray.push('up')
-    } else if (this.downKey.isDown) {
-      this.body.velocity.y = this.speed;
+    } else if (down) {
+      this.body.velocity.y = effectiveSpeed;
       animationsArray.push('down')
     }
 
@@ -86,7 +117,9 @@ export default class Player extends Phaser.Sprite {
   }
 
   handleBombs() {
-    if (this.game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
+    const bombDown = this.game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) || this.touchBomb;
+
+    if (bombDown) {
       let now = this.game.time.now;
 
       if (now > this._lastBombTime) {
@@ -123,6 +156,18 @@ export default class Player extends Phaser.Sprite {
     if ( spoil_type === SPEED ){ this.increaseSpeed() }
     if ( spoil_type === POWER ){ this.increasePower() }
     if ( spoil_type === DELAY ){ this.increaseDelay() }
+    if ( spoil_type === SHIELD ){ this.activateShield() }
+    if ( spoil_type === REMOTE ){ this.enableRemote() }
+    if ( spoil_type === KICK ){ this.enableKick() }
+    if ( spoil_type === GHOST ){ this.activateGhost() }
+  }
+
+  isShielded() {
+    return this.shieldUntil && this.game.time.now < this.shieldUntil;
+  }
+
+  isGhosted() {
+    return this.ghostUntil && this.game.time.now < this.ghostUntil;
   }
 
   increaseSpeed(){
@@ -156,6 +201,61 @@ export default class Player extends Phaser.Sprite {
     this.info.refreshStatistic();
 
     new SpoilNotification({ game: this.game, asset: asset, x: this.position.x, y: this.position.y })
+  }
+
+  activateShield() {
+    this.shieldUntil = this.game.time.now + SHIELD_DURATION_MS;
+
+    // Simple visual: flash tint while shielded
+    this.tint = 0x66ccff;
+    this.game.time.events.add(SHIELD_DURATION_MS, () => {
+      // If ghost is active, keep ghost visual
+      if (this.isGhosted && this.isGhosted()) {
+        this.tint = 0xa7f7ff;
+        this.alpha = 0.65;
+      } else {
+        this.tint = 0xffffff;
+      }
+    });
+
+    new SpoilNotification({ game: this.game, asset: 'placeholder_time', x: this.position.x, y: this.position.y })
+  }
+
+  enableRemote() {
+    this.hasRemote = true;
+    new SpoilNotification({ game: this.game, asset: 'placeholder_power', x: this.position.x, y: this.position.y })
+  }
+
+  enableKick() {
+    this.hasKick = true;
+    new SpoilNotification({ game: this.game, asset: 'placeholder_speed', x: this.position.x, y: this.position.y })
+  }
+
+  activateGhost() {
+    this.ghostUntil = this.game.time.now + GHOST_DURATION_MS;
+
+    // Visual: semi-transparent + cool tint
+    this.alpha = 0.65;
+    this.tint = 0xa7f7ff;
+
+    // HUD indicator + countdown
+    if (this.info && this.info.showGhost) {
+      this.info.showGhost(this.ghostUntil);
+    }
+
+    // Clear visual at end (unless shield overwrote tint, reset to white)
+    this.game.time.events.add(GHOST_DURATION_MS, () => {
+      this.alpha = 1;
+      // if shield is still on, keep its tint
+      if (!(this.isShielded && this.isShielded())) {
+        this.tint = 0xffffff;
+      }
+      if (this.info && this.info.hideGhost) {
+        this.info.hideGhost();
+      }
+    });
+
+    new SpoilNotification({ game: this.game, asset: 'ghost_icon', x: this.position.x, y: this.position.y })
   }
 
   defineSelf(name) {

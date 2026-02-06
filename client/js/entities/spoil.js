@@ -1,4 +1,4 @@
-import { SPEED, POWER, DELAY, TILE_SIZE } from '../utils/constants';
+import { SPEED, POWER, DELAY, SHIELD, REMOTE, KICK, GHOST, TILE_SIZE } from '../utils/constants';
 
 export default class Spoil extends Phaser.Sprite {
 
@@ -12,6 +12,20 @@ export default class Spoil extends Phaser.Sprite {
       spoil_type =  1
     }
     if (spoil.spoil_type === SPEED) {
+      spoil_type = 2
+    }
+
+    // New powerups: reuse existing frames (until we have dedicated art)
+    if (spoil.spoil_type === SHIELD) {
+      spoil_type = 0
+    }
+    if (spoil.spoil_type === REMOTE) {
+      spoil_type = 1
+    }
+    if (spoil.spoil_type === KICK) {
+      spoil_type = 2
+    }
+    if (spoil.spoil_type === GHOST) {
       spoil_type = 2
     }
 

@@ -1,10 +1,15 @@
 var Lobby    = require('./lobby');
 var { Game } = require('./entity/game');
+var Bots     = require('./bots');
+
+const { TILE_SIZE, EMPTY_CELL } = require('./constants');
 
 var runningGames = new Map();
 
 var Play = {
   onLeaveGame: function (data) {
+    // Stop bots and drop running game state
+    Bots.stopBotsForGame(this.socket_game_id);
     runningGames.delete(this.socket_game_id);
 
     this.leave(this.socket_game_id);
@@ -12,13 +17,43 @@ var Play = {
   },
 
   onStartGame: function() {
+    if (!this.socket_game_id) return;
+
     let game = Lobby.deletePendingGame(this.socket_game_id);
+    if (!game) return;
+
     runningGames.set(game.id, game)
+
+    // Start server-side bots (Normal difficulty)
+    Bots.startBotsForRunningGame({ game, playModule: Play });
 
     serverSocket.sockets.in(game.id).emit('launch game', game);
   },
 
   updatePlayerPosition: function (coordinates) {
+    if (!this.socket_game_id) return;
+
+    const current_game = runningGames.get(this.socket_game_id);
+    if (current_game && current_game.players && current_game.players[this.id]) {
+      const p = current_game.players[this.id];
+      const x = coordinates.x;
+      const y = coordinates.y;
+      p.position = {
+        x,
+        y,
+        col: Math.floor(x / TILE_SIZE),
+        row: Math.floor(y / TILE_SIZE),
+        ts: Date.now(),
+      };
+    }
+
+    // Keep server-side copy of human positions for smarter bots
+    try {
+      if (!Bots.isBotId || !Bots.isBotId(this.id)) {
+        Bots.updateHumanPosition(this.socket_game_id, this.id, coordinates);
+      }
+    } catch (_) {}
+
     // NOTE: We broadcast only for opponents.
     this.broadcast.to(this.socket_game_id).emit('move player', Object.assign({}, { player_id: this.id }, coordinates));
   },
@@ -33,27 +68,132 @@ var Play = {
 
   createBomb: function({ col, row }) {
     let game_id = this.socket_game_id;
-    let current_game = runningGames.get(game_id);
-    let current_player = current_game.players[this.id];
+    if (!game_id) return;
 
-    let bomb = current_game.addBomb({ col: col, row: row, power: current_player.power })
+    let current_game = runningGames.get(game_id);
+    if (!current_game) return;
+
+    let current_player = current_game.players[this.id];
+    if (!current_player) return;
+
+    const detonateAndBroadcast = (bomb) => {
+      if (!bomb) return;
+      try {
+        if (bomb._timer) {
+          clearTimeout(bomb._timer);
+          bomb._timer = null;
+        }
+      } catch (_) {}
+
+      let blastedCells = bomb.detonate();
+
+      // remove bomb from server state (important for bots / kick / remote)
+      try { current_game.deleteBomb(bomb.id); } catch (_) {}
+
+      // Apply blast to server-side bots (they don't have a client to report death)
+      Bots.applyBlastToBots({ game: current_game, blastedCells });
+
+      serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: bomb.id, blastedCells: blastedCells });
+    };
+
+    // Remote powerup: pressing bomb again detonates nearest active owned bomb
+    if (current_player.hasRemote) {
+      let nearest = null;
+      let bestD = Infinity;
+      const pos = current_player.position || { col, row };
+
+      for (const b of current_game.bombs.values()) {
+        if (!b) continue;
+        if (b.owner_id !== this.id) continue;
+        const d = Math.abs((pos.col ?? col) - b.col) + Math.abs((pos.row ?? row) - b.row);
+        if (d < bestD) {
+          bestD = d;
+          nearest = b;
+        }
+      }
+
+      if (nearest) {
+        detonateAndBroadcast(nearest);
+        return;
+      }
+      // else: no active bombs -> fallthrough to place one
+    }
+
+    let bomb = current_game.addBomb({ col: col, row: row, power: current_player.power, owner_id: this.id })
+    if (bomb) {
+      bomb.created_at = Date.now();
+    }
 
     if ( bomb ){
-      setTimeout(function() {
-        let blastedCells = bomb.detonate()
-
-        serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: bomb.id, blastedCells: blastedCells });
-
+      bomb._timer = setTimeout(function() {
+        detonateAndBroadcast(bomb);
       }, bomb.explosion_time);
 
       serverSocket.sockets.to(game_id).emit('show bomb', { bomb_id: bomb.id, col: bomb.col, row: bomb.row });
     }
   },
 
+  kickBomb: function({ bomb_id, dir }) {
+    let game_id = this.socket_game_id;
+    if (!game_id) return;
+
+    let current_game = runningGames.get(game_id);
+    if (!current_game) return;
+
+    let current_player = current_game.players[this.id];
+    if (!current_player || !current_player.hasKick) return;
+
+    const bomb = current_game.findBomb(bomb_id);
+    if (!bomb) return;
+
+    const pos = current_player.position || { col: current_player.spawnOnGrid.col, row: current_player.spawnOnGrid.row };
+    const pc = pos.col;
+    const pr = pos.row;
+
+    const dirs = {
+      left:  { dc: -1, dr: 0 },
+      right: { dc: 1,  dr: 0 },
+      up:    { dc: 0,  dr: -1 },
+      down:  { dc: 0,  dr: 1 },
+    };
+
+    const d = dirs[dir];
+    if (!d) return;
+
+    // must be contacting from that direction (player adjacent behind the bomb)
+    if (bomb.col !== pc + d.dc || bomb.row !== pr + d.dr) {
+      return;
+    }
+
+    const targetCol = bomb.col + d.dc;
+    const targetRow = bomb.row + d.dr;
+
+    // bounds check
+    if (!current_game.shadow_map || targetRow < 0 || targetCol < 0 ||
+        targetRow >= current_game.shadow_map.length ||
+        targetCol >= current_game.shadow_map[0].length) {
+      return;
+    }
+
+    // can only kick into empty tile and not onto another bomb
+    if (current_game.getMapCell(targetRow, targetCol) !== EMPTY_CELL) return;
+    if (current_game.findBombAt(targetRow, targetCol)) return;
+
+    bomb.col = targetCol;
+    bomb.row = targetRow;
+
+    serverSocket.sockets.to(game_id).emit('move bomb', { bomb_id: bomb.id, col: bomb.col, row: bomb.row });
+  },
+
   onPickUpSpoil: function({ spoil_id }) {
     let game_id = this.socket_game_id;
+    if (!game_id) return;
+
     let current_game = runningGames.get(game_id);
+    if (!current_game) return;
+
     let current_player = current_game.players[this.id];
+    if (!current_player) return;
 
     let spoil = current_game.findSpoil(spoil_id)
 
@@ -67,11 +207,21 @@ var Play = {
   },
 
   onPlayerDied: function(coordinates) {
-    serverSocket.sockets.to(this.socket_game_id).emit('show bones', Object.assign({}, { player_id: this.id }, coordinates));
-
     let game_id = this.socket_game_id;
+    if (!game_id) return;
+
     let current_game = runningGames.get(game_id);
+    if (!current_game) return;
+
     let current_player = current_game.players[this.id]
+    if (!current_player) return;
+
+    // Shield powerup: brief invulnerability
+    if (current_player.shield_until && Date.now() < current_player.shield_until) {
+      return;
+    }
+
+    serverSocket.sockets.to(game_id).emit('show bones', Object.assign({}, { player_id: this.id }, coordinates));
 
     current_player.dead()
 

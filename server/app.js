@@ -1,5 +1,5 @@
 const express = require('express');
-const socketIO = require('socket.io');
+const { Server } = require('socket.io');
 const favicon = require('serve-favicon');
 
 const app = express();
@@ -23,9 +23,11 @@ server.listen(PORT, function(){
 const Lobby    = require('./lobby');
 const Play     = require('./play');
 
-serverSocket = socketIO(server);
+const io = new Server(server);
+// Back-compat for older code that expects a global `serverSocket`
+global.serverSocket = io;
 
-serverSocket.sockets.on('connection', function(client) {
+io.on('connection', function(client) {
   console.log('New player has connected: ' + client.id);
 
   client.on('enter lobby', Lobby.onEnterLobby);
@@ -34,11 +36,14 @@ serverSocket.sockets.on('connection', function(client) {
 
   client.on('enter pending game', Lobby.onEnterPendingGame);
   client.on('leave pending game', Lobby.onLeavePendingGame);
+  client.on('set ai count', Lobby.onSetAICount);
+  client.on('set ai difficulty', Lobby.onSetAIDifficulty);
 
   client.on('start game', Play.onStartGame);
 
   client.on('update player position', Play.updatePlayerPosition);
   client.on('create bomb', Play.createBomb);
+  client.on('kick bomb', Play.kickBomb);
   client.on('pick up spoil', Play.onPickUpSpoil);
 
   client.on('player died', Play.onPlayerDied);

@@ -1,6 +1,6 @@
-const { SPEED, POWER, DELAY } = require('../constants');
+const { SPEED, POWER, DELAY, SHIELD, REMOTE, KICK, GHOST } = require('../constants');
 
-var uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 
 class Spoil {
 
@@ -14,7 +14,16 @@ class Spoil {
   }
 
   spoilType(){
-    return [SPEED, POWER, DELAY][Math.floor(Math.random() * 3)]
+    // Keep common stat boosts frequent; add rarer powerups.
+    const pool = [
+      SPEED, POWER, DELAY,
+      SPEED, POWER, DELAY,
+      SHIELD,
+      REMOTE,
+      KICK,
+      GHOST,
+    ];
+    return pool[Math.floor(Math.random() * pool.length)]
   }
 }
 

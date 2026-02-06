@@ -202,6 +202,7 @@
 
   <!-- Touch controls overlay (HTML; works even when canvas is letterboxed) -->
   <div id='touch-overlay' class='touch-overlay hidden'>
+    <div id='touch-debug' class='touch-debug hidden'></div>
     <div id='touch-joy' class='touch-joy'>
       <div class='touch-joy-knob'></div>
     </div>
@@ -355,10 +356,42 @@
       bomb.addEventListener('touchend', bombUp, {passive:false});
       bomb.addEventListener('touchcancel', bombUp, {passive:false});
 
+      const dbg = document.getElementById('touch-debug');
       function show(){ overlay.classList.remove('hidden'); }
       function hide(){ overlay.classList.add('hidden'); bombUp(); onEnd(); }
 
-      window.UK01Touch = { show, hide };
+      // debug (enable by adding ?debug=1)
+      const params = new URLSearchParams(location.search);
+      const debugOn = params.get('debug') === '1';
+      if (debugOn) {
+        dbg.classList.remove('hidden');
+        setInterval(() => {
+          const s = debugState();
+          dbg.textContent = `state=${s.state} socket=${(s.socket||'').slice(0,6)} user=${(s.user||'').slice(0,14)} player=${(s.player||'').slice(0,6)} dir=${s.tl?'L':''}${s.tr?'R':''}${s.tu?'U':''}${s.td?'D':''} bomb=${s.tb?'1':'0'}`;
+        }, 250);
+      }
+
+      function debugState(){
+        try {
+          const g = window.__phaserGame;
+          const st = g && g.state && g.state.getCurrentState && g.state.getCurrentState();
+          const p = st && st.player;
+          const info = {
+            state: st && st.key,
+            socket: (window.clientSocket && window.clientSocket.id) || null,
+            user: (window.currentUser && window.currentUser.id) || null,
+            player: p && p.id,
+            tl: p && !!p.touchLeft,
+            tr: p && !!p.touchRight,
+            tu: p && !!p.touchUp,
+            td: p && !!p.touchDown,
+            tb: p && !!p.touchBomb,
+          };
+          return info;
+        } catch(_) { return {}; }
+      }
+
+      window.UK01Touch = { show, hide, debugState };
     })();
   </script>
 

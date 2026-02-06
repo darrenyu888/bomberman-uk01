@@ -24,6 +24,18 @@ body {
   z-index: 7000;
   pointer-events: none;
 }
+
+.touch-debug {
+  position: absolute;
+  top: 58px;
+  left: 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font: 12px/1.2 monospace;
+  pointer-events: none;
+}
 .touch-overlay.hidden { display:none; }
 
 .touch-joy {

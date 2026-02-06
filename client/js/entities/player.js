@@ -250,6 +250,8 @@ export default class Player extends Phaser.Sprite {
         if (!key) return;
         const spr = this.game.add.sprite(x, y, key);
         spr.anchor.setTo(0.5);
+        // cosmetics assets are 64x64 but we display them at 32x32
+        spr.scale.setTo(0.5);
         spr.alpha = alpha;
         this.addChild(spr);
         this._cosmetics.push(spr);

@@ -196,8 +196,83 @@ var Play = {
       // remove bomb from server state (important for bots / kick / remote)
       try { current_game.deleteBomb(bomb.id); } catch (_) {}
 
+      // Cache last blast danger cells briefly to validate client-reported deaths
+      try {
+        current_game._lastBlastAt = Date.now();
+        current_game._lastBlastDanger = new Set((blastedCells || []).map(c => `${c.col},${c.row}`));
+      } catch (_) {}
+
       // Apply blast to server-side bots (they don't have a client to report death)
       Bots.applyBlastToBots({ game: current_game, blastedCells });
+
+      // Also apply blast to humans server-side to avoid client-side mismatch / false positives
+      try {
+        const danger = current_game._lastBlastDanger || new Set();
+        let someoneDied = false;
+
+        for (const [pid, p] of Object.entries(current_game.players || {})) {
+          if (!p || !p.isAlive) continue;
+          // bots handled above
+          if (typeof pid === 'string' && pid.startsWith('bot:')) continue;
+
+          const pos = p.position;
+          const key = pos ? `${pos.col},${pos.row}` : null;
+          if (!key) continue;
+          if (!danger.has(key)) continue;
+
+          if (p.shield_until && Date.now() < p.shield_until) continue;
+
+          p.dead();
+          someoneDied = true;
+          serverSocket.sockets.to(game_id).emit('show bones', {
+            player_id: pid,
+            col: pos.col,
+            row: pos.row,
+          });
+        }
+
+        // If humans died from this blast, check win condition (same logic as onPlayerDied)
+        if (someoneDied) {
+          let alivePlayersCount = 0;
+          let alivePlayerSkin = null;
+          let alivePlayerId = null;
+          let aliveWinnerUserId = null;
+
+          for (const [pid, player] of Object.entries(current_game.players || {})) {
+            if (!player || !player.isAlive) continue;
+            alivePlayerId = pid;
+            alivePlayerSkin = player.skin;
+            aliveWinnerUserId = player.userId || null;
+            alivePlayersCount += 1;
+          }
+
+          if (alivePlayersCount <= 1) {
+            // Record win/loss stats for authenticated humans.
+            try {
+              const Store = require('./store');
+              const loserUserIds = [];
+              for (const pp of Object.values(current_game.players || {})) {
+                if (!pp || !pp.userId) continue;
+                if (pp.userId === aliveWinnerUserId) continue;
+                loserUserIds.push(pp.userId);
+              }
+              if (aliveWinnerUserId || loserUserIds.length) {
+                Store.recordGameResult({ winnerUserId: aliveWinnerUserId, loserUserIds });
+              }
+            } catch (_) {}
+
+            try { clearMatchTimer(current_game); } catch (_) {}
+
+            setTimeout(function() {
+              serverSocket.sockets.to(game_id).emit('player win', {
+                skin: alivePlayerSkin,
+                player_id: alivePlayerId,
+                reason: 'last_alive'
+              });
+            }, 800);
+          }
+        }
+      } catch (_) {}
 
       serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: bomb.id, blastedCells: blastedCells });
     };
@@ -326,6 +401,21 @@ var Play = {
     if (current_player.shield_until && Date.now() < current_player.shield_until) {
       return;
     }
+
+    // Validate that the death is actually caused by a recent blast at server-known position.
+    // Prevents accidental self-kills due to client-side overlap bugs.
+    try {
+      const now = Date.now();
+      const age = now - (current_game._lastBlastAt || 0);
+      const danger = current_game._lastBlastDanger;
+      const pos = current_player.position;
+      const key = pos ? `${pos.col},${pos.row}` : null;
+
+      // allow within 1200ms after detonation
+      if (!danger || !key || age > 1200 || !danger.has(key)) {
+        return;
+      }
+    } catch (_) {}
 
     serverSocket.sockets.to(game_id).emit('show bones', Object.assign({}, { player_id: this.id }, coordinates));
 

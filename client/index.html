@@ -163,6 +163,37 @@
     </div>
   </div>
 
+  <div id='pending-overlay' class='menu-overlay hidden'>
+    <div class='menu-panel'>
+      <div id='pending-title' class='menu-title'>Pending Game</div>
+
+      <div class='menu-row'>
+        <div class='menu-subtitle'>AI 數量</div>
+        <div class='inline-controls'>
+          <button id='ai-minus' class='chip'>-</button>
+          <div id='ai-count' class='chip label'>3</div>
+          <button id='ai-plus' class='chip'>+</button>
+        </div>
+      </div>
+
+      <div class='menu-row'>
+        <div class='menu-subtitle'>AI 難度</div>
+        <div class='inline-controls'>
+          <button class='chip diff' data-diff='easy'>Easy</button>
+          <button class='chip diff active' data-diff='normal'>Normal</button>
+          <button class='chip diff' data-diff='hard'>Hard</button>
+        </div>
+      </div>
+
+      <div class='menu-row'>
+        <button id='btn-start-game' class='menu-btn'>Start Game</button>
+      </div>
+      <div class='menu-row'>
+        <button id='btn-leave-game' class='menu-btn secondary'>Leave</button>
+      </div>
+    </div>
+  </div>
+
   <div id='game-wrapper'>
     <div id='game-container'></div>
   </div>
@@ -230,6 +261,87 @@
 
       // Default show menu immediately
       showMenu();
+    })();
+  </script>
+
+  <script>
+    // Pending Game overlay controller (AI count/difficulty + start)
+    (function(){
+      const pending = document.getElementById('pending-overlay');
+      const titleEl = document.getElementById('pending-title');
+      const aiCountEl = document.getElementById('ai-count');
+      const btnMinus = document.getElementById('ai-minus');
+      const btnPlus = document.getElementById('ai-plus');
+      const btnStart = document.getElementById('btn-start-game');
+      const btnLeave = document.getElementById('btn-leave-game');
+
+      let aiCount = 3;
+      let aiDiff = 'normal';
+
+      function show() {
+        pending.classList.remove('hidden');
+      }
+      function hide() {
+        pending.classList.add('hidden');
+      }
+      function setCount(n) {
+        aiCount = Math.max(0, Math.min(3, n));
+        aiCountEl.textContent = String(aiCount);
+        try { window.clientSocket.emit('set ai count', { count: aiCount }); } catch(_){}
+      }
+      function setDiff(d) {
+        aiDiff = d;
+        // toggle UI
+        pending.querySelectorAll('.chip.diff').forEach(el => {
+          el.classList.toggle('active', el.getAttribute('data-diff') === aiDiff);
+        });
+        try { window.clientSocket.emit('set ai difficulty', { difficulty: aiDiff }); } catch(_){}
+      }
+
+      function updateFromGame(current_game) {
+        if (!current_game) return;
+        if (current_game.name) titleEl.textContent = current_game.name;
+
+        // enable start when at least 1 player
+        const players = current_game.players ? Object.keys(current_game.players).length : 0;
+        btnStart.disabled = !(players >= 1);
+        btnStart.style.opacity = btnStart.disabled ? '0.55' : '1';
+      }
+
+      btnMinus.addEventListener('click', () => setCount(aiCount - 1));
+      btnPlus.addEventListener('click', () => setCount(aiCount + 1));
+
+      pending.addEventListener('click', (e) => {
+        const b = e.target && e.target.closest && e.target.closest('.chip.diff');
+        if (!b) return;
+        const d = b.getAttribute('data-diff');
+        if (d) setDiff(d);
+      });
+
+      btnStart.addEventListener('click', () => {
+        try { window.clientSocket.emit('start game'); } catch(_){}
+        hide();
+      });
+
+      btnLeave.addEventListener('click', () => {
+        try { window.clientSocket.emit('leave pending game'); } catch(_){}
+        hide();
+        try { window.UK01Menu && window.UK01Menu.showMenu && window.UK01Menu.showMenu(); } catch(_){}
+        try { window.__phaserGame && window.__phaserGame.state && window.__phaserGame.state.start('Menu'); } catch(_){}
+      });
+
+      // Expose
+      window.UK01Pending = {
+        show,
+        hide,
+        updateFromGame,
+        setCount,
+        setDiff,
+      };
+
+      // init UI
+      setCount(aiCount);
+      setDiff(aiDiff);
     })();
   </script>
 </body>

@@ -23,6 +23,10 @@ class Play extends Phaser.State {
       this.game.camera.follow(this.player);
     }
 
+    // hide overlays during gameplay
+    try { if (window.UK01Pending && window.UK01Pending.hide) window.UK01Pending.hide(); } catch (_) {}
+    try { if (window.UK01Menu && window.UK01Menu.hideMenu) window.UK01Menu.hideMenu(); } catch (_) {}
+
     this.createTouchControls();
 
     // SFX

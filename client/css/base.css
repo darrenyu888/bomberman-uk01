@@ -154,4 +154,38 @@ body {
   font-size: 16px;
 }
 
+.menu-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.inline-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-size: 16px;
+  min-width: 56px;
+}
+
+.chip.label {
+  text-align: center;
+  min-width: 64px;
+  background: rgba(0,0,0,0.25);
+}
+
+.chip.diff.active {
+  background: rgba(0, 229, 255, 0.28);
+  border-color: rgba(0, 229, 255, 0.55);
+}
+
 .hidden { display: none; }

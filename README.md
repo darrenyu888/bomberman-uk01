@@ -1,85 +1,67 @@
-## A Bomberman-style game with multiplayer option.
+# Bomberman UK01 (multiplayer + AI bots)
 
-**Fork notice / 原作說明**
-- 原作者（Upstream）：Dmytro Vasin
-- 原作 Repo：https://github.com/DmytroVasin/bomber
-- 本 repo（UK01 fork）：https://github.com/darrenyu888/bomberman-uk01
+這是一個 Bomberman 風格的多人連線小遊戲 fork（UK01 版），前端使用 **Phaser.js**，後端使用 **Node.js + Express + Socket.IO**。
 
-A Bomberman-style game with multiplayer option made with [Phaser.js](https://phaser.io/), [Node.js](https://nodejs.org/uk/), [Express.js](http://expressjs.com/), [Socket.io](https://socket.io/).
+- UK01 fork repo：https://github.com/darrenyu888/bomberman-uk01
+- Upstream（原作）repo：https://github.com/DmytroVasin/bomber （作者：Dmytro Vasin）
 
-### UK01 Fork Updates (2026-02-06)
-- Modernize build/tooling (Webpack/Babel config refresh) + add `package-lock.json` (npm-based install).
-- Added **AI bots** support on server side (`server/bots.js`) for filling lobbies / single-player-like play.
-- Added/updated **touch controls** & mobile-friendly UI adjustments.
-- Map selection improvements + new/extra maps & previews (e.g. arena/open + additional map stubs).
-- Gameplay tweaks & new effects/assets (speed/portal FX + SFX), plus power-up/spoil behavior adjustments.
+---
 
+## 特色（UK01 fork）
 
-### Game description:
+### 2026-02-06 更新摘要
+- 建置工具更新（Webpack/Babel）並加入 `package-lock.json`（偏向 **npm** 的可重現安裝）。
+- 伺服器端加入 **AI bots**（`server/bots.js`），可用來補滿房間/提升可玩性。
+- 加強/調整 **觸控操作**與行動裝置友善 UI。
+- 地圖選單與地圖資源更新（新增/擴充地圖與預覽圖）。
+- 遊戲性調整：道具/效果（FX/SFX）、spoil/power-up 行為等。
 
-The game is designed for up to three players.
+### 基本玩法
+- 支援最多約 3 位玩家同場。
+- 最後存活者獲勝。
+- 可透過破壞方塊取得強化（如速度、炸彈能力等）。
 
-Games can be played on one of two maps.
+> 註：上游 README 內的截圖/影片連結（menu/intro 等）多數沿用原作資源，詳見文末「Upstream reference」。
 
-![Maps](https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/maps.png)
+---
 
-Player models user will receive randomly when he will enter the game.
+## 系統需求
+- Node.js：建議 **18+**（見 `package.json` engines）
+- npm：建議使用 `npm ci`（本 repo 提供 `package-lock.json`）
 
-The winning player is the last one standing.
+---
 
-Within the game, players can upgrade skills like:
-( Change to drop - 50% when player break the block )
+## 本機快速開始（建議 / npm）
 
-* ![Speed Up](https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/speed.png) Speed: can increase to 3
-* ![Bomb setting time](https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/time.png) Bomb setting time: can be reduced to 0.5 seconds
-* ![Power Up](https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/power.png) Power: no limit
-
-## Demo:
-You can find a tutorial on how to make Bomberman-style games here: [Tutorial (need work)](https://github.com/DmytroVasin/bomber/blob/master/tutorial.md)
-
-A demo of this game can be found on Heroku: [Bomberman with multiplayer - Demo](https://bomb-attack.herokuapp.com/)
-
-Note: To play the game, you should open the browser in two separate windows. The game pauses when You open a new tab in the same window. Open game in different windows.
-
-## Game: *Click to play*:
-[![Preview](https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/menu.png)](https://player.vimeo.com/video/246595375?autoplay=1)
-
-## Menu: *Click to play*:
-[![Preview](https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/intro.png)](https://player.vimeo.com/video/247095838?autoplay=1)
-
-## Setup:
-The game requires Node and Yarn (npm) package manager. Make sure that you already have both installed on your system before trying to launch it.
-
-Steps (upstream original):
-1. Clone the repository.
-2. Run `yarn install` inside a newly created directory.
-3. Start the server with the command `yarn run server` ( defined in the `package.json` file ). This will launch `webpack` in your development environment and then start the `node` server.
-4. Check out the game at [http://localhost:3000](http://localhost:3000)
-5. Enjoy!
-
-### UK01 fork: 本機部署方式（建議 / npm）
-> 本段是針對本 fork 目前的安裝與部署方式（已加入 `package-lock.json`）。
-
-#### 方式 A：直接在本機跑（開發/測試）
 ```bash
 git clone https://github.com/darrenyu888/bomberman-uk01.git
 cd bomberman-uk01
 
-# 安裝依賴（建議用 npm lockfile）
+# 安裝依賴（使用 lockfile，環境更穩定）
 npm ci
 
-# Build（production bundle）
+# 建置前端 bundle（production）
 npm run build:prod
 
-# 啟動（預設 PORT=3000）
+# 啟動伺服器（預設 PORT=3000）
 PORT=3000 npm start
 
-# 瀏覽器開啟
+# 打開瀏覽器
 # http://localhost:3000
 ```
 
-#### 方式 B：systemd 服務化（Linux）
-範例 service（本機環境曾使用）：
+### 常用 npm scripts
+- `npm run build`：development build
+- `npm run build:prod`：production build
+- `npm start`：直接啟動 server
+- `npm test`：Node.js 內建 test runner
+
+---
+
+## 部署（UK01 fork：Linux / systemd + Nginx）
+
+### 方式 A：systemd 服務化
+本機環境曾使用的範例服務檔（依你的實際路徑調整）：
 - `/etc/systemd/system/bomberman-web.service`
 - `WorkingDirectory=/root/clawd/bomberman-web`
 - `ExecStart=/usr/bin/node server/app.js`
@@ -93,11 +75,12 @@ sudo systemctl status bomberman-web
 sudo journalctl -u bomberman-web -f
 ```
 
-#### （可選）方式 C：Nginx 反向代理 + WebSocket（Socket.IO）
-如果要用網域對外服務，Nginx 需要支援 WebSocket upgrade。
-範例設定（本機環境曾使用，檔名可能為 `bomberman.conf.disabled`，啟用時請改成 `.conf`）：
+### 方式 B：（可選）Nginx 反向代理 + WebSocket（Socket.IO）
+若要用網域對外服務，Nginx 需要支援 WebSocket upgrade。
+
+本機環境曾使用的範例設定（可能放在 `bomberman.conf.disabled`，啟用時請改成 `.conf`）：
 - `/etc/nginx/conf.d/bomberman.conf`
-- 反向代理到 `127.0.0.1:3000`
+- upstream 指向 `127.0.0.1:3000`
 
 啟用/測試：
 ```bash
@@ -105,10 +88,26 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-## Notes:
-You can use my code as a boilerplate if you want, but I would suggest you change the tile sizes. I've picked tiles that are 35x35 pixels, but tiles that are 32x32 would be more ideal. All free templates are based on this tile size, and it is also handily divisible by 2.
+---
 
-## To Debug Node process:
-1. Open: chrome://inspect/#devices
-2. Click 'Open dedicated DevTools for Node'
-3. "server": "webpack --mode development && node --inspect server/app.js",
+## 除錯（Debug Node）
+1. 打開 `chrome://inspect/#devices`
+2. Click "Open dedicated DevTools for Node"
+3. 以 `--inspect` 方式啟動 server，例如：
+   - `node --inspect server/app.js`
+
+---
+
+## Upstream reference（原作參考）
+以下資源/說明主要來自 upstream，保留作為參考：
+- Tutorial（need work）：https://github.com/DmytroVasin/bomber/blob/master/tutorial.md
+- 原作 demo（Heroku 歷史連結）：https://bomb-attack.herokuapp.com/
+- 原作 README 內的預覽圖：
+  - Menu： https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/menu.png
+  - Intro： https://raw.githubusercontent.com/DmytroVasin/bomber/master/_readme/intro.png
+
+---
+
+## License / Credits
+- 原作作者：Dmytro Vasin（upstream repo： https://github.com/DmytroVasin/bomber ）
+- 本 repo 為 UK01 fork，保留 upstream attribution。

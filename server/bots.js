@@ -730,11 +730,28 @@ function startBotsForRunningGame({ game, playModule }) {
           if (isWalkable(game, s.row, s.col)) {
             // higher chance to bomb when next to a destructible block ("拆箱")
             const nearBox = adjacentToDestructible(game, s.col, s.row);
-            const bombChance = nearBox ? 0.78 : 0.28;
+            // Make bots a bit more "bomberman-ish": place bombs more often.
+            const bombChance = nearBox ? 0.92 : 0.45;
 
             if (Math.random() < bombChance * profile.aggression) {
-              // Don't place if it would be suicide (no escape path)
-              if (!profile.validateEscape || canEscapeAfterDroppingBomb(game, botId, stateMap, s, playModule)) {
+              // Avoid pure suicide, but don't be overly strict (otherwise bots almost never bomb).
+              let ok = true;
+              if (profile.validateEscape) {
+                ok = canEscapeAfterDroppingBomb(game, botId, stateMap, s, playModule);
+
+                // fallback: if escape validator fails, still allow bombing when there is at least 1 adjacent empty tile
+                if (!ok) {
+                  const neigh = [
+                    { dc: 1, dr: 0 },
+                    { dc: -1, dr: 0 },
+                    { dc: 0, dr: 1 },
+                    { dc: 0, dr: -1 },
+                  ];
+                  ok = neigh.some(d => isWalkable(game, s.row + d.dr, s.col + d.dc));
+                }
+              }
+
+              if (ok) {
                 s.lastBombAt = now;
                 const fakeSocket = { socket_game_id: game.id, id: botId };
                 playModule.createBomb.call(fakeSocket, { col: s.col, row: s.row });

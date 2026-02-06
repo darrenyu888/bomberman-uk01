@@ -22,6 +22,16 @@ var Play = {
       return;
     }
 
+    // If already running, just re-emit launch to help late/buggy clients.
+    const already = runningGames.get(this.socket_game_id);
+    if (already) {
+      try {
+        serverSocket.sockets.in(already.id).emit('launch game', already);
+      } catch (_) {}
+      console.log('start game: already running, re-launch emitted', { gameId: already.id, by: this.id });
+      return;
+    }
+
     let game = Lobby.deletePendingGame(this.socket_game_id);
     if (!game) {
       console.warn('start game ignored: pending game missing', this.socket_game_id);

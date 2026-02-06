@@ -191,7 +191,14 @@ app.get('/leaderboard', (req, res) => {
   let currentMe = null;
 
   function esc(s){
-    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+    const str = String(s || '');
+    return str.replace(/[&<>"']/g, (c) => {
+      if (c === '&') return '&amp;';
+      if (c === '<') return '&lt;';
+      if (c === '>') return '&gt;';
+      if (c === '"') return '&quot;';
+      return '&#39;';
+    });
   }
 
   function setActive(){

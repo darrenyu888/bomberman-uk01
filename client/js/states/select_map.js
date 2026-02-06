@@ -8,54 +8,18 @@ class SelectMap extends Phaser.State {
   }
 
   create() {
+    // Select map is handled by HTML overlay now.
+    // Keep background to avoid blank canvas and immediately return to Menu.
     let background = this.add.image(this.game.world.centerX, this.game.world.centerY, 'main_menu');
     background.anchor.setTo(0.5);
 
-    new Text({
-      game: this.game,
-      x: this.game.world.centerX,
-      y: this.game.world.centerY - 215,
-      text: 'Select Map',
-      style: {
-        font: '35px Areal',
-        fill: '#9ec0ba',
-        stroke: '#6f7975',
-        strokeThickness: 3
+    try {
+      if (window.UK01Menu && window.UK01Menu.showMaps) {
+        window.UK01Menu.showMaps();
       }
-    });
+    } catch (_) {}
 
-
-    // WARN: https://github.com/netgfx/PhaseSlider/issues/1
-    let hotMapImage = new Phaser.Image(this.game, 0, 0, 'hot_map_preview');
-    let coldMapImage = new Phaser.Image(this.game, 0, 0, 'cold_map_preview');
-    let arenaMapImage = new Phaser.Image(this.game, 0, 0, 'arena_map_preview');
-    let openMapImage  = new Phaser.Image(this.game, 0, 0, 'open_map_preview');
-    let runeLabImage  = new Phaser.Image(this.game, 0, 0, 'rune_lab_preview');
-    let mirrorTempleImage  = new Phaser.Image(this.game, 0, 0, 'mirror_temple_preview');
-    let trapGardenImage  = new Phaser.Image(this.game, 0, 0, 'trap_garden_preview');
-
-    this.slider.createSlider({
-      x: this.game.world.centerX - hotMapImage.width / 2,
-      y: this.game.world.centerY - coldMapImage.height / 2,
-      width: hotMapImage.width,
-      height: hotMapImage.height,
-      customHandlePrev: 'prev',
-      customHandleNext: 'next',
-      objects: [hotMapImage, coldMapImage, arenaMapImage, openMapImage, runeLabImage, mirrorTempleImage, trapGardenImage]
-    });
-
-    new Button({
-      game: this.game,
-      x: this.game.world.centerX,
-      y: this.game.world.centerY + 195,
-      asset: 'check_icon',
-      callback: this.confirmStageSelection,
-      callbackContext: this,
-      overFrame: 1,
-      outFrame: 0,
-      downFrame: 2,
-      upFrame: 0,
-    })
+    // no-op
   }
 
   confirmStageSelection() {

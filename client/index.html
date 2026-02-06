@@ -140,8 +140,97 @@
     </div>
   </div>
 
+  <div id='menu-overlay' class='menu-overlay hidden'>
+    <div class='menu-panel'>
+      <div class='menu-title'>Main Menu</div>
+      <button id='btn-new-game' class='menu-btn'>New Game</button>
+
+      <div id='map-picker' class='hidden'>
+        <div class='menu-title'>Select Map</div>
+        <div class='map-grid'>
+          <button class='map-btn' data-map='hot_map'>Hot</button>
+          <button class='map-btn' data-map='cold_map'>Cold</button>
+          <button class='map-btn' data-map='arena_map'>Arena</button>
+          <button class='map-btn' data-map='open_map'>Open</button>
+          <button class='map-btn' data-map='rune_lab'>Rune Lab</button>
+          <button class='map-btn' data-map='mirror_temple'>Mirror</button>
+          <button class='map-btn' data-map='trap_garden'>Trap</button>
+        </div>
+        <div class='menu-row'>
+          <button id='btn-map-back' class='menu-btn secondary'>Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id='game-wrapper'>
     <div id='game-container'></div>
   </div>
+
+  <script>
+    // HTML Menu overlay controller (more reliable on mobile than Phaser buttons)
+    (function(){
+      const menu = document.getElementById('menu-overlay');
+      const mapPicker = document.getElementById('map-picker');
+      const btnNew = document.getElementById('btn-new-game');
+      const btnBack = document.getElementById('btn-map-back');
+
+      function showMenu() {
+        menu.classList.remove('hidden');
+        mapPicker.classList.add('hidden');
+        btnNew.style.display = 'block';
+      }
+      function showMaps() {
+        mapPicker.classList.remove('hidden');
+        btnNew.style.display = 'none';
+      }
+      function hideMenu() {
+        menu.classList.add('hidden');
+      }
+
+      // Expose so Phaser states can toggle
+      window.UK01Menu = { showMenu, showMaps, hideMenu };
+
+      btnNew.addEventListener('click', () => {
+        showMaps();
+      });
+
+      btnBack.addEventListener('click', () => {
+        showMenu();
+      });
+
+      // Map choose
+      menu.addEventListener('click', (e) => {
+        const b = e.target && e.target.closest && e.target.closest('.map-btn');
+        if (!b) return;
+        const map = b.getAttribute('data-map');
+        if (!map) return;
+
+        try {
+          // mirror Phaser flow
+          window.clientSocket.emit('leave lobby');
+        } catch (_) {}
+
+        window.clientSocket.emit('create game', map, (payload) => {
+          if (payload && payload.error) {
+            alert(payload.message || payload.error);
+            return;
+          }
+          const game_id = (payload && payload.game_id) ? payload.game_id : payload;
+          hideMenu();
+          // Start pending game state
+          try {
+            window.__phaserGame && window.__phaserGame.state && window.__phaserGame.state.start('PendingGame', true, false, game_id);
+          } catch (_) {
+            // fallback: reload
+            location.reload();
+          }
+        });
+      });
+
+      // Default show menu immediately
+      showMenu();
+    })();
+  </script>
 </body>
 </html>

@@ -91,3 +91,67 @@ body {
   border: 1px solid rgba(255,255,255,0.25);
   min-width: 170px;
 }
+
+/* HTML Menu Overlay (mobile reliable) */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  pointer-events: auto;
+}
+.menu-overlay.hidden { display: none; }
+
+.menu-panel {
+  width: min(92vw, 420px);
+  background: rgba(20, 20, 25, 0.78);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 16px;
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+.menu-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.menu-btn {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(122, 28, 255, 0.55);
+  color: #fff;
+  font-size: 18px;
+}
+
+.menu-btn.secondary {
+  background: rgba(255,255,255,0.10);
+}
+
+.menu-row {
+  margin-top: 12px;
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.map-btn {
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0, 229, 255, 0.18);
+  color: #fff;
+  font-size: 16px;
+}
+
+.hidden { display: none; }

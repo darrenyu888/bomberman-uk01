@@ -27,4 +27,5 @@ class Game extends Phaser.Game {
   }
 }
 
-new Game();
+// keep a reference for HTML overlay to control states
+window.__phaserGame = new Game();

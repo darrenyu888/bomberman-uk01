@@ -6,9 +6,52 @@ const { TILE_SIZE, EMPTY_CELL } = require('./constants');
 
 var runningGames = new Map();
 
+function clearMatchTimer(game) {
+  try {
+    if (game && game._matchTimer) {
+      clearTimeout(game._matchTimer);
+      game._matchTimer = null;
+    }
+  } catch (_) {}
+}
+
+function emitWinAndCleanup({ game, reason }) {
+  if (!game) return;
+  const game_id = game.id;
+
+  // pick a winner among alive players if any
+  let winnerSkin = null;
+  let winnerId = null;
+  for (const [pid, p] of Object.entries(game.players || {})) {
+    if (!p || !p.isAlive) continue;
+    winnerSkin = p.skin;
+    winnerId = pid;
+    break;
+  }
+
+  try {
+    serverSocket.sockets.to(game_id).emit('player win', {
+      skin: winnerSkin,
+      player_id: winnerId,
+      reason: reason || 'unknown'
+    });
+  } catch (_) {}
+
+  // stop bots + cleanup running game state after a short grace period
+  try { Bots.stopBotsForGame(game_id); } catch (_) {}
+  clearMatchTimer(game);
+
+  setTimeout(() => {
+    try { runningGames.delete(game_id); } catch (_) {}
+  }, 8000);
+}
+
 var Play = {
   onLeaveGame: function (data) {
     // Stop bots and drop running game state
+    const g = runningGames.get(this.socket_game_id);
+    if (g) clearMatchTimer(g);
+
     Bots.stopBotsForGame(this.socket_game_id);
     runningGames.delete(this.socket_game_id);
 
@@ -41,6 +84,23 @@ var Play = {
     console.log('start game', { gameId: game.id, by: this.id, players: Object.keys(game.players || {}).length });
 
     runningGames.set(game.id, game)
+
+    // Hard time limit when only humans remain: 3 minutes max per match.
+    // (Still applies even if bots exist; it prevents endless games.)
+    try {
+      clearMatchTimer(game);
+      game._matchTimer = setTimeout(() => {
+        try {
+          const g = runningGames.get(game.id);
+          if (!g) return;
+          // If already ended naturally, no-op.
+          const alive = Object.values(g.players || {}).filter(p => p && p.isAlive).length;
+          if (alive <= 1) return;
+
+          emitWinAndCleanup({ game: g, reason: 'timeout_3m' });
+        } catch (_) {}
+      }, 180000);
+    } catch (_) {}
 
     // Record gamesPlayed for authenticated humans
     try {
@@ -284,6 +344,9 @@ var Play = {
         Store.recordGameResult({ winnerUserId: aliveWinnerUserId, loserUserIds });
       }
     } catch (_) {}
+
+    // stop match timer once game is effectively decided
+    try { clearMatchTimer(current_game); } catch (_) {}
 
     setTimeout(function() {
       // keep backward compatibility: send skin; also send winner id + reason

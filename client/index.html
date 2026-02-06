@@ -363,11 +363,23 @@
       // debug (enable by adding ?debug=1)
       const params = new URLSearchParams(location.search);
       const debugOn = params.get('debug') === '1';
+
+      // simple debug logger
+      window.UK01Log = (msg) => {
+        if (!debugOn) return;
+        try {
+          dbg.classList.remove('hidden');
+          const line = (msg || '').toString().slice(0, 160);
+          dbg.textContent = line + "\n" + dbg.textContent;
+        } catch (_) {}
+      };
+
       if (debugOn) {
         dbg.classList.remove('hidden');
         setInterval(() => {
           const s = debugState();
-          dbg.textContent = `state=${s.state} socket=${(s.socket||'').slice(0,6)} user=${(s.user||'').slice(0,14)} player=${(s.player||'').slice(0,6)} dir=${s.tl?'L':''}${s.tr?'R':''}${s.tu?'U':''}${s.td?'D':''} bomb=${s.tb?'1':'0'}`;
+          const line = `state=${s.state} socket=${(s.socket||'').slice(0,6)} user=${(s.user||'').slice(0,14)} player=${(s.player||'').slice(0,6)} dir=${s.tl?'L':''}${s.tr?'R':''}${s.tu?'U':''}${s.td?'D':''} bomb=${s.tb?'1':'0'}`;
+          dbg.textContent = line + "\n" + dbg.textContent.split('\n').slice(1, 6).join('\n');
         }, 250);
       }
 

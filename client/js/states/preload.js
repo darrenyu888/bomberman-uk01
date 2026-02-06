@@ -1,6 +1,18 @@
 class Preload extends Phaser.State {
 
   preload() {
+    // Debug loader issues on mobile (use ?debug=1)
+    try {
+      this.load.onFileError.add((key, file) => {
+        try { if (window.UK01Log) window.UK01Log(`LOAD_ERR key=${key} url=${file && file.url}`); } catch (_) {}
+      });
+      this.load.onFileComplete.add((progress, key) => {
+        try { if (window.UK01Log && progress < 100) window.UK01Log(`LOAD ${progress}% ${key}`); } catch (_) {}
+      });
+      this.load.onLoadComplete.add(() => {
+        try { if (window.UK01Log) window.UK01Log('LOAD_DONE'); } catch (_) {}
+      });
+    } catch (_) {}
     // Menu:
     this.load.image('main_menu',     'images/menu/main_menu.png');
     this.load.image('slot_backdrop', 'images/menu/slot_backdrop.png');

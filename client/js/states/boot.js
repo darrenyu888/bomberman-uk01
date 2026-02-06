@@ -32,6 +32,22 @@ class Boot extends Phaser.State {
       }
     })
 
+    // Mobile browsers often block audio until a user gesture.
+    // Unlock/resume audio on first tap/click.
+    try {
+      this.game.sound.mute = false;
+      this.game.input.onDown.addOnce(() => {
+        try {
+          if (this.game.sound && this.game.sound.context && this.game.sound.context.state === 'suspended') {
+            this.game.sound.context.resume();
+          }
+          if (this.game.sound && this.game.sound.unlock) {
+            this.game.sound.unlock();
+          }
+        } catch (_) {}
+      });
+    } catch (_) {}
+
     this.state.start('Preload');
   }
 

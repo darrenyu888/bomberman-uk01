@@ -191,6 +191,7 @@ class Play extends Phaser.State {
     clientSocket.on('spoil was picked', this.onSpoilWasPicked.bind(this));
     clientSocket.on('show bones', this.onShowBones.bind(this));
     clientSocket.on('player disconnect', this.onPlayerDisconnect.bind(this));
+    clientSocket.on('sudden death tiles', this.onSuddenDeathTiles.bind(this));
   }
 
   onPlayerVsSpoil(player, spoil) {
@@ -418,6 +419,28 @@ class Play extends Phaser.State {
       g.destroy(true);
       this.createTouchControls();
     });
+  }
+
+  onSuddenDeathTiles({ level, tiles }) {
+    if (!tiles || !tiles.length) return;
+
+    // Visual: place walls on map; keep collision as-is (walls are already collidable)
+    const wallIdx = this.wallTileIndex;
+    for (const t of tiles) {
+      try {
+        this.map.putTile(wallIdx, t.col, t.row, this.blockLayer);
+      } catch (_) {}
+    }
+
+    // Optional: show a tiny hint
+    try {
+      if (!this._sdText) {
+        this._sdText = this.game.add.text(10, 10, '', { font: '16px Arial', fill: '#ffdf7a', stroke: '#000', strokeThickness: 3 });
+        this._sdText.fixedToCamera = true;
+      }
+      this._sdText.text = `SUDDEN DEATH Lv.${level}`;
+      this.game.time.events.add(1200, () => { try { if (this._sdText) this._sdText.text = ''; } catch (_) {} });
+    } catch (_) {}
   }
 
   refreshGhostCollision() {

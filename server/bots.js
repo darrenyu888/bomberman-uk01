@@ -23,7 +23,20 @@ const BOT_DIFFICULTY_PROFILES = {
 
 function difficultyForGame(game) {
   const key = (game && game.aiDifficulty) || 'normal';
-  return BOT_DIFFICULTY_PROFILES[key] || BOT_DIFFICULTY_PROFILES.normal;
+  const base = BOT_DIFFICULTY_PROFILES[key] || BOT_DIFFICULTY_PROFILES.normal;
+
+  // Sudden death boost when only bots are left (server sets game.suddenDeathLevel)
+  const lvl = Math.max(0, Math.min(8, Number(game && game.suddenDeathLevel) || 0));
+  if (!lvl) return base;
+
+  const aggression = Math.min(1.0, base.aggression + (0.08 * lvl));
+  const reactionDelayMs = Math.max(18, Math.floor(base.reactionDelayMs / (1 + 0.18 * lvl)));
+
+  return {
+    ...base,
+    aggression,
+    reactionDelayMs,
+  };
 }
 
 // In-memory bot runtime state (per game)
@@ -34,6 +47,9 @@ const difficultyByGameId = new Map();  // gameId -> 'easy'|'normal'|'hard'
 const specialsByGameId = new Map(); // gameId -> { portalCells: [{col,row}], speedCells: Set("c,r") }
 const humanPosByGameId = new Map(); // gameId -> Map(humanId -> { col,row,x,y,ts })
 
+// Sudden death state
+const suddenDeathByGameId = new Map(); // gameId -> { humansGoneAt, level, lastTickAt }
+
 function isBotId(id) {
   return typeof id === 'string' && id.startsWith(BOT_PREFIX);
 }
@@ -42,6 +58,94 @@ function hasOnlyBots(game) {
   const ids = Object.keys(game.players || {});
   if (ids.length === 0) return false;
   return ids.every(isBotId);
+}
+
+function countAliveHumans(game) {
+  let n = 0;
+  for (const [id, p] of Object.entries(game.players || {})) {
+    if (!p || !p.isAlive) continue;
+    if (isBotId(id)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+function pickEdgeEmptyCells(game, count) {
+  const cells = [];
+  if (!game || !game.shadow_map) return cells;
+  const h = game.shadow_map.length;
+  const w = game.shadow_map[0] ? game.shadow_map[0].length : 0;
+  if (!h || !w) return cells;
+
+  const candidates = [];
+  const add = (r, c) => {
+    if (r < 0 || c < 0 || r >= h || c >= w) return;
+    if (game.shadow_map[r][c] !== EMPTY_CELL) return;
+    candidates.push({ row: r, col: c });
+  };
+
+  // perimeter rings: outer + one inner ring
+  for (let c = 0; c < w; c++) { add(0, c); add(h - 1, c); if (h > 2) { add(1, c); add(h - 2, c); } }
+  for (let r = 0; r < h; r++) { add(r, 0); add(r, w - 1); if (w > 2) { add(r, 1); add(r, w - 2); } }
+
+  // shuffle-ish sampling
+  for (let i = 0; i < count && candidates.length; i++) {
+    const idx = Math.floor(Math.random() * candidates.length);
+    cells.push(candidates[idx]);
+    candidates.splice(idx, 1);
+  }
+  return cells;
+}
+
+function suddenDeathTick(game) {
+  if (!game || !game.id) return;
+  const humans = countAliveHumans(game);
+  const now = Date.now();
+
+  if (humans > 0) {
+    suddenDeathByGameId.delete(game.id);
+    game.suddenDeathLevel = 0;
+    return;
+  }
+
+  const st = suddenDeathByGameId.get(game.id) || { humansGoneAt: now, level: 0, lastTickAt: 0 };
+  if (!st.humansGoneAt) st.humansGoneAt = now;
+
+  const goneFor = now - st.humansGoneAt;
+  // Start sudden death after 20s with only bots
+  if (goneFor < 20000) {
+    suddenDeathByGameId.set(game.id, st);
+    return;
+  }
+
+  // escalate every 4s
+  if (now - st.lastTickAt < 4000) {
+    suddenDeathByGameId.set(game.id, st);
+    return;
+  }
+
+  st.lastTickAt = now;
+  st.level = Math.min(6, (st.level || 0) + 1);
+  game.suddenDeathLevel = st.level;
+  suddenDeathByGameId.set(game.id, st);
+
+  // "Skyfall" walls from edges (shrink arena)
+  const wallsToDrop = Math.min(10, 3 + st.level);
+  const drops = pickEdgeEmptyCells(game, wallsToDrop);
+  if (!drops.length) return;
+
+  // Update server shadow map so bots/pathing see it as wall
+  for (const d of drops) {
+    try { game.shadow_map[d.row][d.col] = NON_DESTRUCTIBLE_CELL; } catch (_) {}
+  }
+
+  // Notify clients to place wall tiles visually
+  try {
+    global.serverSocket.sockets.in(game.id).emit('sudden death tiles', {
+      level: st.level,
+      tiles: drops.map(d => ({ col: d.col, row: d.row, kind: 'wall' }))
+    });
+  } catch (_) {}
 }
 
 function makeBotId(game) {
@@ -726,9 +830,14 @@ function startBotsForRunningGame({ game, playModule }) {
           } catch (_) {}
         }
 
+        // Sudden death tick (only bots left) + time-based acceleration
+        try { suddenDeathTick(game); } catch (_) {}
+
         // Bomb rate based on delay stat (lower delay -> more frequent)
         const delay = (p.delay || INITIAL_DELAY);
-        const bombCooldown = Math.max(MIN_DELAY, delay);
+        // In sudden death, allow faster bombing
+        const sdLevel = Math.max(0, Number(game.suddenDeathLevel) || 0);
+        const bombCooldown = Math.max(MIN_DELAY, Math.floor(delay / (1 + 0.12 * sdLevel)));
         if (now - (s.lastBombAt || 0) > bombCooldown) {
           if (isWalkable(game, s.row, s.col)) {
             // higher chance to bomb when next to a destructible block ("拆箱")

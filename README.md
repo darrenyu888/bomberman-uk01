@@ -1,6 +1,19 @@
 ## A Bomberman-style game with multiplayer option.
 
+**Fork notice / 原作說明**
+- 原作者（Upstream）：Dmytro Vasin
+- 原作 Repo：https://github.com/DmytroVasin/bomber
+- 本 repo（UK01 fork）：https://github.com/darrenyu888/bomberman-uk01
+
 A Bomberman-style game with multiplayer option made with [Phaser.js](https://phaser.io/), [Node.js](https://nodejs.org/uk/), [Express.js](http://expressjs.com/), [Socket.io](https://socket.io/).
+
+### UK01 Fork Updates (2026-02-06)
+- Modernize build/tooling (Webpack/Babel config refresh) + add `package-lock.json` (npm-based install).
+- Added **AI bots** support on server side (`server/bots.js`) for filling lobbies / single-player-like play.
+- Added/updated **touch controls** & mobile-friendly UI adjustments.
+- Map selection improvements + new/extra maps & previews (e.g. arena/open + additional map stubs).
+- Gameplay tweaks & new effects/assets (speed/portal FX + SFX), plus power-up/spoil behavior adjustments.
+
 
 ### Game description:
 

@@ -33,6 +33,7 @@
         const r = await fetch('/api/me');
         const data = await r.json();
         if (data && data.user) {
+          window.currentUser = data.user;
           statusEl.textContent = `已登入：${data.user.displayName}`;
           // auto-minimize after login to avoid blocking gameplay
           el.classList.add('minimized');
@@ -40,6 +41,7 @@
           logoutBtn.style.display = 'inline-block';
           saveBtn.style.display = 'inline-block';
         } else {
+          window.currentUser = null;
           statusEl.textContent = '未登入（可匿名遊玩）';
           logoutBtn.style.display = 'none';
           saveBtn.style.display = 'none';

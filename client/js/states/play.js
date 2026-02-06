@@ -129,7 +129,23 @@ class Play extends Phaser.State {
   }
 
   createPlayers() {
-    for (let player of Object.values(this.currentGame.players)) {
+    const all = Object.values(this.currentGame.players || {});
+
+    // Prefer socket id match
+    let local = all.find(p => p && p.id === clientSocket.id);
+
+    // Fallback: match by authenticated userId (useful if socket id changed)
+    if (!local) {
+      try {
+        const uid = window.currentUser && window.currentUser.id;
+        if (uid) {
+          local = all.find(p => p && p.userId && p.userId === uid);
+        }
+      } catch (_) {}
+    }
+
+    for (let player of all) {
+      if (!player) continue;
       let setup = {
         game:   this.game,
         id:     player.id,
@@ -137,10 +153,18 @@ class Play extends Phaser.State {
         skin:   player.skin
       }
 
-      if (player.id === clientSocket.id) {
+      if ((local && player === local) || player.id === clientSocket.id) {
         this.player = new Player(setup);
       } else {
         this.enemies.add(new EnemyPlayer(setup))
+      }
+    }
+
+    // If still not found (anonymous + mismatch), pick first non-bot as local to avoid a blank screen
+    if (!this.player && all.length) {
+      const first = all.find(p => p && !(typeof p.id === 'string' && p.id.startsWith('bot:'))) || all[0];
+      if (first) {
+        this.player = new Player({ game: this.game, id: first.id, spawn: first.spawn, skin: first.skin });
       }
     }
   }

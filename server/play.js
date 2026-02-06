@@ -109,9 +109,20 @@ var Play = {
       matchTimersByGameId.set(game.id, tid);
     } catch (_) {}
 
-    // Record gamesPlayed for authenticated humans
+    // Ensure authenticated profile fields (displayName/avatarParts) are present at launch
+    // (Players may have joined pending room before login or before saving cosmetics.)
     try {
       const Store = require('./store');
+      for (const p of Object.values(game.players || {})) {
+        if (!p || !p.userId) continue;
+        const u = Store.getUserById(p.userId);
+        if (u) {
+          p.displayName = u.displayName || p.displayName;
+          p.avatarParts = u.avatarParts || p.avatarParts || null;
+        }
+      }
+
+      // Record gamesPlayed for authenticated humans
       const userIds = [];
       for (const p of Object.values(game.players || {})) {
         if (p && p.userId) userIds.push(p.userId);

@@ -164,13 +164,19 @@ body {
 }
 
 .avatar-preview {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.18);
   background: rgba(255,255,255,0.06);
   position: relative;
   overflow: hidden;
+}
+
+/* Make the account overlay accommodate a larger preview */
+#auth-overlay .auth-row {
+  gap: 10px;
+  align-items: center;
 }
 
 .avatar-preview .av-layer {
@@ -178,7 +184,7 @@ body {
   inset: 0;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 40px 40px;
+  background-size: 96px 96px;
   image-rendering: pixelated;
 }
 

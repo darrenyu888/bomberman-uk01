@@ -12,9 +12,16 @@
 ### 2026-02-06 更新摘要
 - 建置工具更新（Webpack/Babel）並加入 `package-lock.json`（偏向 **npm** 的可重現安裝）。
 - 伺服器端加入 **AI bots**（`server/bots.js`），可用來補滿房間/提升可玩性。
-- 加強/調整 **觸控操作**與行動裝置友善 UI。
+- 加強/調整 **觸控操作**與行動裝置友善 UI（mobile menu/pending/touch overlays + loading overlay）。
 - 地圖選單與地圖資源更新（新增/擴充地圖與預覽圖）。
-- 遊戲性調整：道具/效果（FX/SFX）、spoil/power-up 行為等。
+- 遊戲性調整：
+  - 新道具（shield/remote/kick/ghost）+ 道具閃光效果
+  - 特殊地板（portal/speed floor）視覺與音效
+  - 勝利事件補充 reason（debug）+ 手機結算頁支援 tap return
+- Google 登入（GIS）+ 可改 displayName + 後台保存 Gmail/email + 基本戰績（wins/losses/gamesPlayed）。
+- 新增排行榜：
+  - API：`/api/leaderboard`（支援 `sort=wins|winrate|games`、`minGames`）
+  - 頁面：`/leaderboard`（可視化、可切排序、支援最低場次門檻、標示你的名次）
 
 ### 基本玩法
 - 支援最多約 3 位玩家同場。

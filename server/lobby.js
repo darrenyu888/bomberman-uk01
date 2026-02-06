@@ -19,7 +19,22 @@ var Lobby = {
   },
 
   onCreateGame: function(map_name, callback) {
+    // Limit: same IP + same user (socket) can create at most 2 pending games.
+    // Note: there is no auth layer, so we treat "user" as the current socket connection.
+    const headers = (this.handshake && this.handshake.headers) || {};
+    const xff = headers['x-forwarded-for'];
+    const ip = (xff && xff.split(',')[0].trim()) || (this.handshake && this.handshake.address) || this.conn?.remoteAddress || 'unknown';
+
+    const existingCount = [...pendingGames.values()].filter(g => g && g.creator && g.creator.ip === ip && g.creator.socketId === this.id).length;
+    if (existingCount >= 2) {
+      callback({ error: 'ROOM_LIMIT', message: '同一個使用者（同IP）最多同時建立 2 個房間。請先離開/刪除其中一個房間再建立新的。' });
+      return;
+    }
+
     var newGame = new Game({ map_name: map_name });
+    // track creator for rate-limiting
+    newGame.creator = { ip, socketId: this.id, createdAt: Date.now() };
+
     pendingGames.set(newGame.id, newGame);
 
     Lobby.updateLobbyGames()

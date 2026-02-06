@@ -66,6 +66,12 @@ class SelectMap extends Phaser.State {
 
   joinToNewGame(payload) {
     // server callback may return either a plain id string or an object { game_id }
+    if (payload && payload.error) {
+      // Minimal UX: browser alert (works in Phaser environment)
+      alert(payload.message || payload.error);
+      return;
+    }
+
     const game_id = (payload && payload.game_id) ? payload.game_id : payload;
     this.state.start('PendingGame', true, false, game_id);
   }

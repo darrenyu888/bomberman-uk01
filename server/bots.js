@@ -174,7 +174,10 @@ function getSpecials(game) {
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
         const v = tiles[i++];
-        if (v === TILE_PORTAL) portalCells.push({ col, row });
+        // Portal tile id must NOT conflict with balk tile id (e.g. cold_map has balk=2).
+        if (v === TILE_PORTAL && v !== (game.layer_info && game.layer_info.properties && game.layer_info.properties.balk)) {
+          portalCells.push({ col, row });
+        }
         if (v === TILE_SPEED_FLOOR) speedCells.add(`${col},${row}`);
       }
     }

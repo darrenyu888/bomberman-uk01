@@ -102,7 +102,9 @@ class Play extends Phaser.State {
         if (!tile) continue;
         const idx = tile.index;
 
-        if (idx === TILE_PORTAL) {
+        // Portal tile id must NOT conflict with balk (destructible) tile id.
+        // cold_map uses balk=2, which would otherwise create "too many portals".
+        if (idx === TILE_PORTAL && idx !== this.balkTileIndex) {
           this.portalCells.push({ col: c, row: r });
         } else if (idx === TILE_SPEED_FLOOR) {
           this.speedCells.add(`${c},${r}`);

@@ -163,6 +163,25 @@ body {
   color: #fff;
 }
 
+.avatar-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-preview .av-layer {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 40px 40px;
+  image-rendering: pixelated;
+}
+
 /* HTML Menu Overlay (mobile reliable) */
 .loading-overlay {
   position: fixed;

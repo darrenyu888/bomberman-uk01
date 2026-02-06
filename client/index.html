@@ -30,6 +30,7 @@
       const outfitSel = document.getElementById('avatar-outfit');
       const hatSel = document.getElementById('avatar-hat');
       const avatarSaveBtn = document.getElementById('avatar-save');
+      const previewEl = document.getElementById('avatar-preview');
 
       // Audio mute toggle (persist in localStorage)
       function applyMuteState() {
@@ -72,6 +73,7 @@
           hairSel.value = parts.hair || '';
           outfitSel.value = parts.outfit || '';
           hatSel.value = parts.hat || '';
+          try { updatePreview(); } catch (_) {}
         } else {
           window.currentUser = null;
           statusEl.textContent = '未登入（可匿名遊玩）';
@@ -95,6 +97,27 @@
         }
         await refreshMe();
       });
+
+      function updatePreview(){
+        if (!previewEl) return;
+        const hair = hairSel.value || '';
+        const outfit = outfitSel.value || '';
+        const hat = hatSel.value || '';
+        const setBg = (cls, key) => {
+          const el = previewEl.querySelector(cls);
+          if (!el) return;
+          if (!key) { el.style.backgroundImage = 'none'; return; }
+          // Served from /images/game/cosmetics/*.png
+          el.style.backgroundImage = `url(/images/game/cosmetics/${key}.png)`;
+        };
+        setBg('.av-hair', hair);
+        setBg('.av-outfit', outfit);
+        setBg('.av-hat', hat);
+      }
+
+      hairSel.addEventListener('change', updatePreview);
+      outfitSel.addEventListener('change', updatePreview);
+      hatSel.addEventListener('change', updatePreview);
 
       avatarSaveBtn.addEventListener('click', async () => {
         const displayName = (nameEl.value || '').trim();
@@ -199,6 +222,11 @@
       </div>
 
       <div class='auth-row'>
+        <div id='avatar-preview' class='avatar-preview' title='預覽（示意）'>
+          <div class='av-layer av-outfit'></div>
+          <div class='av-layer av-hair'></div>
+          <div class='av-layer av-hat'></div>
+        </div>
         <select id='avatar-hair'>
           <option value=''>Hair: (none)</option>
           <option value='hair_1'>Hair 1</option>

@@ -112,8 +112,8 @@ function suddenDeathTick(game) {
   if (!st.humansGoneAt) st.humansGoneAt = now;
 
   const goneFor = now - st.humansGoneAt;
-  // Start sudden death after 20s with only bots
-  if (goneFor < 20000) {
+  // Start sudden death after 30s with only bots
+  if (goneFor < 30000) {
     suddenDeathByGameId.set(game.id, st);
     return;
   }

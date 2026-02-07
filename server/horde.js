@@ -136,7 +136,26 @@ function startHordeForRunningGame({ game }) {
         try {
           if (Object.keys(game.players || {}).length >= maxSlots) break;
           game.addPlayer(id);
+
+          // Give horde NPCs a visible character variant
+          try {
+            const p = game.players && game.players[id];
+            if (p) {
+              p.displayName = p.displayName || 'NPC';
+              p.avatarParts = p.avatarParts || {};
+              // Use a fixed character for now (can randomize later)
+              p.avatarParts.character = p.avatarParts.character || 'char_6';
+            }
+          } catch (_) {}
+
           Bots.ensureBotRuntimeForId && Bots.ensureBotRuntimeForId({ game, botId: id });
+
+          // Notify clients so they can render newly spawned bots after match start
+          try {
+            if (global.serverSocket && global.serverSocket.sockets) {
+              global.serverSocket.sockets.to(game.id).emit('spawn player', { player: (game.players && game.players[id]) || null });
+            }
+          } catch (_) {}
         } catch (_) {}
       }
     } catch (_) {}

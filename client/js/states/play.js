@@ -199,6 +199,7 @@ class Play extends Phaser.State {
     clientSocket.on('show bones', this.onShowBones.bind(this));
     clientSocket.on('player disconnect', this.onPlayerDisconnect.bind(this));
     clientSocket.on('sudden death tiles', this.onSuddenDeathTiles.bind(this));
+    clientSocket.on('spawn player', this.onSpawnPlayer.bind(this));
     clientSocket.on('match summary', this.onMatchSummary.bind(this));
   }
 
@@ -627,6 +628,29 @@ class Play extends Phaser.State {
     if (this.enemies.children.length >= 1) { return }
 
     this.onPlayerWin()
+  }
+
+  onSpawnPlayer({ player }) {
+    try {
+      if (!player || !player.id) return;
+      // Don't respawn local player
+      if (player.id === clientSocket.id) return;
+
+      // If already exists, skip
+      const exists = findFrom(player.id, this.enemies);
+      if (exists) return;
+
+      const setup = {
+        game: this.game,
+        id: player.id,
+        spawn: player.spawn,
+        skin: player.skin,
+        displayName: player.displayName || player.skin,
+        avatarParts: player.avatarParts || null,
+      };
+
+      this.enemies.add(new EnemyPlayer(setup));
+    } catch (_) {}
   }
 }
 

@@ -1,6 +1,7 @@
 var Lobby    = require('./lobby');
 var { Game } = require('./entity/game');
 var Bots     = require('./bots');
+var Horde    = require('./horde');
 
 const { TILE_SIZE, EMPTY_CELL } = require('./constants');
 
@@ -19,6 +20,33 @@ function clearMatchTimer(gameOrId) {
       matchTimersByGameId.delete(gameId);
     }
   } catch (_) {}
+}
+
+function emitHordeSummaryAndCleanup({ game, reason }) {
+  if (!game) return;
+  const game_id = game.id;
+
+  try { game.endedAt = Date.now(); } catch (_) {}
+
+  let summary = null;
+  try {
+    summary = Horde.buildSummary(game);
+  } catch (_) {
+    summary = { mode: 'horde', reason: reason || 'ended' };
+  }
+
+  try {
+    serverSocket.sockets.to(game_id).emit('match summary', { game_id, summary, reason: reason || 'horde_end' });
+  } catch (_) {}
+
+  // stop bots + horde loops
+  try { Bots.stopBotsForGame(game_id); } catch (_) {}
+  try { Horde.stopHordeForGame(game_id); } catch (_) {}
+  clearMatchTimer(game_id);
+
+  setTimeout(() => {
+    try { runningGames.delete(game_id); } catch (_) {}
+  }, 8000);
 }
 
 function emitWinAndCleanup({ game, reason }) {
@@ -45,6 +73,7 @@ function emitWinAndCleanup({ game, reason }) {
 
   // stop bots + cleanup running game state after a short grace period
   try { Bots.stopBotsForGame(game_id); } catch (_) {}
+  try { Horde.stopHordeForGame(game_id); } catch (_) {}
   clearMatchTimer(game_id);
 
   setTimeout(() => {
@@ -59,6 +88,7 @@ var Play = {
     if (g) clearMatchTimer(g.id);
 
     Bots.stopBotsForGame(this.socket_game_id);
+    try { Horde.stopHordeForGame(this.socket_game_id); } catch (_) {}
     runningGames.delete(this.socket_game_id);
 
     this.leave(this.socket_game_id);
@@ -91,23 +121,26 @@ var Play = {
 
     runningGames.set(game.id, game)
 
-    // Hard time limit when only humans remain: 3 minutes max per match.
-    // (Still applies even if bots exist; it prevents endless games.)
-    try {
-      clearMatchTimer(game.id);
-      const tid = setTimeout(() => {
-        try {
-          const g = runningGames.get(game.id);
-          if (!g) return;
-          // If already ended naturally, no-op.
-          const alive = Object.values(g.players || {}).filter(p => p && p.isAlive).length;
-          if (alive <= 1) return;
+    // Match timer: Classic only (Horde is survival-based)
+    if (game.mode !== 'horde') {
+      // Hard time limit: 3 minutes max per match.
+      try {
+        clearMatchTimer(game.id);
+        const tid = setTimeout(() => {
+          try {
+            const g = runningGames.get(game.id);
+            if (!g) return;
+            const alive = Object.values(g.players || {}).filter(p => p && p.isAlive).length;
+            if (alive <= 1) return;
 
-          emitWinAndCleanup({ game: g, reason: 'timeout_3m' });
-        } catch (_) {}
-      }, 180000);
-      matchTimersByGameId.set(game.id, tid);
-    } catch (_) {}
+            emitWinAndCleanup({ game: g, reason: 'timeout_3m' });
+          } catch (_) {}
+        }, 180000);
+        matchTimersByGameId.set(game.id, tid);
+      } catch (_) {}
+    } else {
+      clearMatchTimer(game.id);
+    }
 
     // Ensure authenticated profile fields (displayName/avatarParts) are present at launch
     // (Players may have joined pending room before login or before saving cosmetics.)
@@ -130,8 +163,14 @@ var Play = {
       if (userIds.length) Store.recordGameStart(userIds);
     } catch (_) {}
 
-    // Start server-side bots (Normal difficulty)
+    // Start match clock + stats
+    try { game.startedAt = Date.now(); } catch (_) {}
+
+    // Start server-side bots runtime (movement/bombs)
     Bots.startBotsForRunningGame({ game, playModule: Play });
+
+    // Horde spawn loop (adds bots over time)
+    try { Horde.startHordeForRunningGame({ game }); } catch (_) {}
 
     serverSocket.sockets.in(game.id).emit('launch game', game);
   },
@@ -203,7 +242,7 @@ var Play = {
       } catch (_) {}
 
       // Apply blast to server-side bots (they don't have a client to report death)
-      Bots.applyBlastToBots({ game: current_game, blastedCells });
+      Bots.applyBlastToBots({ game: current_game, blastedCells, killerId: bomb.owner_id });
 
       // Also apply blast to humans server-side to avoid client-side mismatch / false positives
       try {
@@ -224,6 +263,10 @@ var Play = {
 
           p.dead();
           someoneDied = true;
+
+          // Horde survival time tracking
+          try { if (current_game.mode === 'horde') Horde.recordHumanDeath({ game: current_game, playerId: pid, atMs: Date.now() }); } catch (_) {}
+
           serverSocket.sockets.to(game_id).emit('show bones', {
             player_id: pid,
             col: pos.col,
@@ -238,12 +281,20 @@ var Play = {
           let alivePlayerId = null;
           let aliveWinnerUserId = null;
 
+          let aliveHumans = 0;
           for (const [pid, player] of Object.entries(current_game.players || {})) {
             if (!player || !player.isAlive) continue;
             alivePlayerId = pid;
             alivePlayerSkin = player.skin;
             aliveWinnerUserId = player.userId || null;
             alivePlayersCount += 1;
+            if (!(typeof pid === 'string' && pid.startsWith('bot:'))) aliveHumans += 1;
+          }
+
+          // Horde end condition: all humans dead
+          if (current_game.mode === 'horde' && aliveHumans <= 0) {
+            emitHordeSummaryAndCleanup({ game: current_game, reason: 'all_humans_dead' });
+            return;
           }
 
           if (alivePlayersCount <= 1) {
@@ -421,7 +472,11 @@ var Play = {
 
     current_player.dead()
 
+    // Horde survival time tracking
+    try { if (current_game.mode === 'horde') Horde.recordHumanDeath({ game: current_game, playerId: this.id, atMs: Date.now() }); } catch (_) {}
+
     let alivePlayersCount = 0
+    let aliveHumans = 0
     let alivePlayerSkin = null
     let alivePlayerId = null
     let aliveWinnerUserId = null
@@ -433,6 +488,13 @@ var Play = {
       alivePlayerSkin = player.skin;
       aliveWinnerUserId = player.userId || null;
       alivePlayersCount += 1;
+      if (!(typeof pid === 'string' && pid.startsWith('bot:'))) aliveHumans += 1;
+    }
+
+    // Horde end condition: all humans dead
+    if (current_game.mode === 'horde' && aliveHumans <= 0) {
+      emitHordeSummaryAndCleanup({ game: current_game, reason: 'all_humans_dead' });
+      return;
     }
 
     if (alivePlayersCount >= 2) {

@@ -40,7 +40,8 @@ function difficultyForGame(game) {
 }
 
 // In-memory bot runtime state (per game)
-const botLoopsByGameId = new Map(); // gameId -> { timers: [intervalIds], bots: Set(botId) }
+const botLoopsByGameId = new Map(); // gameId -> { timers: Map(botId->intervalId), bots: Set(botId) }
+const playModuleByGameId = new Map(); // gameId -> play module (for createBomb)
 const botStateByGameId = new Map(); // gameId -> Map(botId -> { col,row,lastBombAt,lastMoveAt,lastPortalAt })
 const desiredBotsByGameId = new Map(); // gameId -> number
 const difficultyByGameId = new Map();  // gameId -> 'easy'|'normal'|'hard'
@@ -628,7 +629,7 @@ function pickNextStep(game, col, row) {
   return { col, row };
 }
 
-function applyBlastToBots({ game, blastedCells }) {
+function applyBlastToBots({ game, blastedCells, killerId }) {
   if (!game || !blastedCells || blastedCells.length === 0) return;
 
   const stateMap = botStateByGameId.get(game.id);
@@ -649,6 +650,27 @@ function applyBlastToBots({ game, blastedCells }) {
       }
       p.dead();
       someoneDied = true;
+
+      // Horde scoring: attribute bot kills to bomb owner (killerId)
+      if (game && game.mode === 'horde') {
+        try {
+          const Horde = require('./horde');
+          Horde.recordBotKill({ game, killerId });
+        } catch (_) {}
+
+        // Remove dead bot to free a slot for future spawns
+        setTimeout(() => {
+          try {
+            game.removePlayer(botId);
+          } catch (_) {
+            try { delete (game.players || {})[botId]; } catch (_) {}
+          }
+          try {
+            stateMap.delete(botId);
+          } catch (_) {}
+        }, 900);
+      }
+
       global.serverSocket.sockets.to(game.id).emit('show bones', {
         player_id: botId,
         col: s.col,
@@ -658,6 +680,9 @@ function applyBlastToBots({ game, blastedCells }) {
   }
 
   if (!someoneDied) return;
+
+  // Horde: bots dying doesn't end the match.
+  if (game && game.mode === 'horde') return;
 
   // Check win condition (reuse logic similar to Play.onPlayerDied)
   let alivePlayersCount = 0;
@@ -673,6 +698,179 @@ function applyBlastToBots({ game, blastedCells }) {
   setTimeout(function() {
     global.serverSocket.sockets.to(game.id).emit('player win', alivePlayerSkin);
   }, 800);
+}
+
+function createBotInterval({ game, botId, stateMap, playModule }) {
+  // movement + bomb loop per bot
+  const moveTimer = setInterval(() => {
+    try {
+      const s = stateMap.get(botId);
+      if (!s) return;
+      const p = game.players && game.players[botId];
+      if (!p || !p.isAlive) return;
+
+      const now = Date.now();
+
+      const specials = getSpecials(game);
+      const profile = difficultyForGame(game);
+      const onSpeed = specials.speedCells.has(`${s.col},${s.row}`);
+
+      // Move rate loosely based on speed (higher speed -> more frequent steps)
+      const speed = (p.speed || INITIAL_SPEED) * (onSpeed ? profile.speedMultiplier : 1.0);
+      const minPeriod = 90;
+      const maxPeriod = 320;
+      const t = Math.max(0, Math.min(1, (speed - INITIAL_SPEED) / Math.max(1, (MAX_SPEED - INITIAL_SPEED))));
+      const movePeriod = Math.floor(maxPeriod - (maxPeriod - minPeriod) * t);
+
+      if (!s.lastMoveAt) s.lastMoveAt = 0;
+      if (now - s.lastMoveAt >= movePeriod) {
+        s.lastMoveAt = now;
+
+        const { danger, blocks } = buildDangerAndBlocks(game);
+        const hereKey = `${s.col},${s.row}`;
+
+        let next;
+        if (danger.has(hereKey) || blocks.has(hereKey)) {
+          // emergency: path to nearest safe tile (prefer reaching a portal if available)
+          const specials = getSpecials(game);
+          let step = null;
+
+          if (specials.portalCells && specials.portalCells.length >= 2) {
+            // pick nearest portal
+            let bestP = null;
+            for (const pp of specials.portalCells) {
+              const d = Math.abs(pp.col - s.col) + Math.abs(pp.row - s.row);
+              if (!bestP || d < bestP.d) bestP = { ...pp, d };
+            }
+            if (bestP) {
+              const via = bfsNextStepToTarget(game, s.col, s.row, bestP.col, bestP.row, { danger, blocks }, 18);
+              // reaction delay: bots don't instantly snap to the optimal escape
+              if (profile.reactionDelayMs && (now - (s._lastReactAt || 0) < profile.reactionDelayMs)) {
+                step = null;
+              } else {
+                s._lastReactAt = now;
+              }
+              if (via && via.dist !== Infinity) step = via;
+            }
+          }
+
+          if (!step) step = bfsNextStepToSafety(game, s.col, s.row, { danger, blocks }, 16);
+          next = { col: step.col, row: step.row };
+        } else {
+          // Goal selection (priority): visible human -> destructible nearby -> roam
+          const human = findNearestHuman(game, botId);
+          const destr = findNearestDestructible(game, botId, 9);
+
+          if (human && hasLineOfSight(game, s.col, s.row, human.col, human.row)) {
+            next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 14);
+          } else if (destr) {
+            const approach = [
+              { col: destr.col + 1, row: destr.row },
+              { col: destr.col - 1, row: destr.row },
+              { col: destr.col, row: destr.row + 1 },
+              { col: destr.col, row: destr.row - 1 },
+            ].filter(t => isWalkable(game, t.row, t.col) && !danger.has(`${t.col},${t.row}`) && !blocks.has(`${t.col},${t.row}`));
+
+            let best = null;
+            for (const a of approach) {
+              const step = bfsNextStepToTarget(game, s.col, s.row, a.col, a.row, { danger, blocks }, 16);
+              if (step.dist === Infinity) continue;
+              if (!best || step.dist < best.dist) best = step;
+            }
+
+            next = best ? { col: best.col, row: best.row } : pickNextStep(game, s.col, s.row);
+          } else {
+            next = pickNextStep(game, s.col, s.row);
+          }
+
+          const nk = `${next.col},${next.row}`;
+          if (danger.has(nk) || blocks.has(nk)) {
+            const step = bfsNextStepToSafety(game, s.col, s.row, { danger, blocks }, 10);
+            next = { col: step.col, row: step.row };
+          }
+        }
+
+        s.col = next.col;
+        s.row = next.row;
+
+        // Portal usage: if step onto portal, teleport to its paired portal
+        if (specials.portalCells.length >= 2) {
+          const now2 = Date.now();
+          const hereIdx = specials.portalCells.findIndex(p2 => p2.col === s.col && p2.row === s.row);
+          if (hereIdx >= 0 && (now2 - (s.lastPortalAt || 0) > profile.portalCooldownMs)) {
+            const pairIdx = (hereIdx % 2 === 0) ? hereIdx + 1 : hereIdx - 1;
+            const target = specials.portalCells[pairIdx];
+            if (target) {
+              s.col = target.col;
+              s.row = target.row;
+              s.lastPortalAt = now2;
+            }
+          }
+        }
+
+        // Emit movement in pixels (top-left like player sprite)
+        global.serverSocket.sockets.to(game.id).emit('move player', {
+          player_id: botId,
+          x: s.col * TILE_SIZE,
+          y: s.row * TILE_SIZE,
+        });
+      }
+
+      // Auto-pick spoils on the tile
+      const spoil = findSpoilAt(game, s.row, s.col);
+      if (spoil) {
+        try {
+          game.deleteSpoil(spoil.id);
+          p.pickSpoil(spoil.spoil_type);
+          global.serverSocket.sockets.to(game.id).emit('spoil was picked', {
+            player_id: botId,
+            spoil_id: spoil.id,
+            spoil_type: spoil.spoil_type,
+          });
+        } catch (_) {}
+      }
+
+      // Sudden death tick (only bots left)
+      try { suddenDeathTick(game); } catch (_) {}
+
+      // Bomb rate based on delay stat
+      const delay = (p.delay || INITIAL_DELAY);
+      const sdLevel = Math.max(0, Number(game.suddenDeathLevel) || 0);
+      const bombCooldown = Math.max(MIN_DELAY, Math.floor(delay / (1 + 0.12 * sdLevel)));
+      if (now - (s.lastBombAt || 0) > bombCooldown) {
+        if (isWalkable(game, s.row, s.col)) {
+          const nearBox = adjacentToDestructible(game, s.col, s.row);
+          const bombChance = nearBox ? 0.92 : 0.45;
+
+          if (Math.random() < bombChance * profile.aggression) {
+            let ok = true;
+            if (profile.validateEscape) {
+              ok = canEscapeAfterDroppingBomb(game, botId, stateMap, s, playModule);
+              if (!ok) {
+                const neigh = [
+                  { dc: 1, dr: 0 },
+                  { dc: -1, dr: 0 },
+                  { dc: 0, dr: 1 },
+                  { dc: 0, dr: -1 },
+                ];
+                ok = neigh.some(d => isWalkable(game, s.row + d.dr, s.col + d.dc));
+              }
+            }
+
+            if (ok) {
+              s.lastBombAt = now;
+              const fakeSocket = { socket_game_id: game.id, id: botId };
+              playModule.createBomb.call(fakeSocket, { col: s.col, row: s.row });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, 260);
+
+  return moveTimer;
 }
 
 function startBotsForRunningGame({ game, playModule }) {
@@ -695,195 +893,42 @@ function startBotsForRunningGame({ game, playModule }) {
 
   const botIds = new Set(Object.keys(game.players || {}).filter(isBotId));
 
-  const timers = [];
+  const timers = new Map();
+  playModuleByGameId.set(game.id, playModule);
 
   for (const botId of botIds) {
-    // movement loop
-    const moveTimer = setInterval(() => {
-      try {
-        const s = stateMap.get(botId);
-        if (!s) return;
-        const p = game.players && game.players[botId];
-        if (!p || !p.isAlive) return;
-
-        const now = Date.now();
-
-        const specials = getSpecials(game);
-        const profile = difficultyForGame(game);
-        const onSpeed = specials.speedCells.has(`${s.col},${s.row}`);
-
-        // Move rate loosely based on speed (higher speed -> more frequent steps)
-        const speed = (p.speed || INITIAL_SPEED) * (onSpeed ? profile.speedMultiplier : 1.0);
-        const minPeriod = 90;
-        const maxPeriod = 320;
-        const t = Math.max(0, Math.min(1, (speed - INITIAL_SPEED) / Math.max(1, (MAX_SPEED - INITIAL_SPEED))));
-        const movePeriod = Math.floor(maxPeriod - (maxPeriod - minPeriod) * t);
-
-        if (!s.lastMoveAt) s.lastMoveAt = 0;
-        if (now - s.lastMoveAt >= movePeriod) {
-          s.lastMoveAt = now;
-
-          const { danger, blocks } = buildDangerAndBlocks(game);
-          const hereKey = `${s.col},${s.row}`;
-
-          let next;
-          if (danger.has(hereKey) || blocks.has(hereKey)) {
-            // emergency: path to nearest safe tile (prefer reaching a portal if available)
-            const specials = getSpecials(game);
-            let step = null;
-
-            if (specials.portalCells && specials.portalCells.length >= 2) {
-              // pick nearest portal
-              let bestP = null;
-              for (const pp of specials.portalCells) {
-                const d = Math.abs(pp.col - s.col) + Math.abs(pp.row - s.row);
-                if (!bestP || d < bestP.d) bestP = { ...pp, d };
-              }
-              if (bestP) {
-                const via = bfsNextStepToTarget(game, s.col, s.row, bestP.col, bestP.row, { danger, blocks }, 18);
-              // reaction delay: bots don't instantly snap to the optimal escape
-              if (profile.reactionDelayMs && (now - (s._lastReactAt || 0) < profile.reactionDelayMs)) {
-                step = null;
-              } else {
-                s._lastReactAt = now;
-              }
-                if (via && via.dist !== Infinity) step = via;
-              }
-            }
-
-            if (!step) step = bfsNextStepToSafety(game, s.col, s.row, { danger, blocks }, 16);
-            next = { col: step.col, row: step.row };
-          } else {
-            // Goal selection (priority): visible human -> destructible nearby -> roam
-            const human = findNearestHuman(game, botId);
-            const destr = findNearestDestructible(game, botId, 9);
-
-            // If we have a human target and line of sight on its *spawn* line, chase that direction.
-            // (Server doesn't track human live coords; this still makes bots "purposeful".)
-            if (human && hasLineOfSight(game, s.col, s.row, human.col, human.row)) {
-              // Move toward the human's line
-              next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 14);
-            } else if (destr) {
-              // Move to a walkable tile adjacent to a destructible block
-              // Try 4 adjacent approach tiles and pick the best BFS step
-              const approach = [
-                { col: destr.col + 1, row: destr.row },
-                { col: destr.col - 1, row: destr.row },
-                { col: destr.col, row: destr.row + 1 },
-                { col: destr.col, row: destr.row - 1 },
-              ].filter(t => isWalkable(game, t.row, t.col) && !danger.has(`${t.col},${t.row}`) && !blocks.has(`${t.col},${t.row}`));
-
-              let best = null;
-              for (const a of approach) {
-                const step = bfsNextStepToTarget(game, s.col, s.row, a.col, a.row, { danger, blocks }, 16);
-                if (step.dist === Infinity) continue;
-                if (!best || step.dist < best.dist) best = step;
-              }
-
-              next = best ? { col: best.col, row: best.row } : pickNextStep(game, s.col, s.row);
-            } else {
-              // normal roam
-              next = pickNextStep(game, s.col, s.row);
-            }
-
-            const nk = `${next.col},${next.row}`;
-            if (danger.has(nk) || blocks.has(nk)) {
-              const step = bfsNextStepToSafety(game, s.col, s.row, { danger, blocks }, 10);
-              next = { col: step.col, row: step.row };
-            }
-          }
-
-          s.col = next.col;
-          s.row = next.row;
-
-          // Portal usage: if step onto portal, teleport to its paired portal
-          if (specials.portalCells.length >= 2) {
-            const now2 = Date.now();
-            const hereIdx = specials.portalCells.findIndex(p2 => p2.col === s.col && p2.row === s.row);
-            if (hereIdx >= 0 && (now2 - (s.lastPortalAt || 0) > profile.portalCooldownMs)) {
-              const pairIdx = (hereIdx % 2 === 0) ? hereIdx + 1 : hereIdx - 1;
-              const target = specials.portalCells[pairIdx];
-              if (target) {
-                s.col = target.col;
-                s.row = target.row;
-                s.lastPortalAt = now2;
-              }
-            }
-          }
-
-          // Emit movement in pixels (top-left like player sprite)
-          global.serverSocket.sockets.to(game.id).emit('move player', {
-            player_id: botId,
-            x: s.col * TILE_SIZE,
-            y: s.row * TILE_SIZE,
-          });
-        }
-
-        // Auto-pick spoils on the tile
-        const spoil = findSpoilAt(game, s.row, s.col);
-        if (spoil) {
-          try {
-            game.deleteSpoil(spoil.id);
-            p.pickSpoil(spoil.spoil_type);
-            global.serverSocket.sockets.to(game.id).emit('spoil was picked', {
-              player_id: botId,
-              spoil_id: spoil.id,
-              spoil_type: spoil.spoil_type,
-            });
-          } catch (_) {}
-        }
-
-        // Sudden death tick (only bots left) + time-based acceleration
-        try { suddenDeathTick(game); } catch (_) {}
-
-        // Bomb rate based on delay stat (lower delay -> more frequent)
-        const delay = (p.delay || INITIAL_DELAY);
-        // In sudden death, allow faster bombing
-        const sdLevel = Math.max(0, Number(game.suddenDeathLevel) || 0);
-        const bombCooldown = Math.max(MIN_DELAY, Math.floor(delay / (1 + 0.12 * sdLevel)));
-        if (now - (s.lastBombAt || 0) > bombCooldown) {
-          if (isWalkable(game, s.row, s.col)) {
-            // higher chance to bomb when next to a destructible block ("拆箱")
-            const nearBox = adjacentToDestructible(game, s.col, s.row);
-            // Make bots a bit more "bomberman-ish": place bombs more often.
-            const bombChance = nearBox ? 0.92 : 0.45;
-
-            if (Math.random() < bombChance * profile.aggression) {
-              // Avoid pure suicide, but don't be overly strict (otherwise bots almost never bomb).
-              let ok = true;
-              if (profile.validateEscape) {
-                ok = canEscapeAfterDroppingBomb(game, botId, stateMap, s, playModule);
-
-                // fallback: if escape validator fails, still allow bombing when there is at least 1 adjacent empty tile
-                if (!ok) {
-                  const neigh = [
-                    { dc: 1, dr: 0 },
-                    { dc: -1, dr: 0 },
-                    { dc: 0, dr: 1 },
-                    { dc: 0, dr: -1 },
-                  ];
-                  ok = neigh.some(d => isWalkable(game, s.row + d.dr, s.col + d.dc));
-                }
-              }
-
-              if (ok) {
-                s.lastBombAt = now;
-                const fakeSocket = { socket_game_id: game.id, id: botId };
-                playModule.createBomb.call(fakeSocket, { col: s.col, row: s.row });
-              }
-            }
-          }
-        }
-      } catch (e) {
-        // Keep bots from crashing the whole server
-        // console.warn('bot loop error', e);
-      }
-    }, 260);
-
-    timers.push(moveTimer);
+    const moveTimer = createBotInterval({ game, botId, stateMap, playModule });
+    timers.set(botId, moveTimer);
   }
 
   botLoopsByGameId.set(game.id, { timers, bots: botIds });
+}
+
+function ensureBotRuntimeForId({ game, botId }) {
+  if (!game || !game.id || !botId) return;
+
+  const stateMap = botStateByGameId.get(game.id) || new Map();
+  if (!stateMap.has(botId)) {
+    const p = game.players && game.players[botId];
+    stateMap.set(botId, { ...gridFromPlayer(p), lastBombAt: 0, lastMoveAt: 0, lastPortalAt: 0 });
+    botStateByGameId.set(game.id, stateMap);
+  }
+
+  const entry = botLoopsByGameId.get(game.id);
+  if (!entry) return; // not running yet
+
+  entry.bots.add(botId);
+  if (entry.timers && entry.timers.has(botId)) return;
+
+  const playModule = playModuleByGameId.get(game.id);
+  if (!playModule) return;
+
+  const tid = createBotInterval({ game, botId, stateMap, playModule });
+  entry.timers.set(botId, tid);
+}
+
+function makeBotIdForGame(game) {
+  return makeBotId(game);
 }
 
 function stopBotsForGame(gameId) {
@@ -891,11 +936,12 @@ function stopBotsForGame(gameId) {
   const entry = botLoopsByGameId.get(gameId);
   if (!entry) return;
 
-  for (const t of entry.timers) {
+  for (const t of (entry.timers && entry.timers.values ? entry.timers.values() : [])) {
     try { clearInterval(t); } catch (_) {}
   }
 
   botLoopsByGameId.delete(gameId);
+  playModuleByGameId.delete(gameId);
   // Keep botStateByGameId so bots in pending games preserve position; optional.
 }
 
@@ -911,6 +957,8 @@ module.exports = {
   ensureBotsInPendingGame,
   removeBotsFromGame,
   startBotsForRunningGame,
+  ensureBotRuntimeForId,
+  makeBotIdForGame,
   stopBotsForGame,
   applyBlastToBots,
 };

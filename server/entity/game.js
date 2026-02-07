@@ -8,11 +8,21 @@ const { faker } = require('@faker-js/faker');
 
 class Game {
 
-  constructor({ map_name }) {
+  constructor({ map_name, mode }) {
     this.id           = uuidv4();
     // @faker-js/faker v8+: commerce.color() removed; use color.human()
     this.name         = faker.color.human()
     this.map_name     = map_name;
+    this.mode         = (mode || 'classic').toString().toLowerCase() === 'horde' ? 'horde' : 'classic';
+
+    // Match stats (server-authoritative)
+    this.startedAt     = null;
+    this.endedAt       = null;
+    this.stats         = {
+      teamKills: 0,
+      perPlayerKills: {}, // playerId -> number
+      perPlayerSurvivalMs: {}, // playerId -> ms
+    };
 
     this.layer_info   = require('../../client/maps/' + this.map_name + '.json').layers[0]
     this.max_players  = this.layer_info.properties.max_players

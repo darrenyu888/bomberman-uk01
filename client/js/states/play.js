@@ -199,6 +199,7 @@ class Play extends Phaser.State {
     clientSocket.on('show bones', this.onShowBones.bind(this));
     clientSocket.on('player disconnect', this.onPlayerDisconnect.bind(this));
     clientSocket.on('sudden death tiles', this.onSuddenDeathTiles.bind(this));
+    clientSocket.on('match summary', this.onMatchSummary.bind(this));
   }
 
   onPlayerVsSpoil(player, spoil) {
@@ -600,6 +601,13 @@ class Play extends Phaser.State {
     this.bones.add(new Bone(this.game, col, row));
 
     findAndDestroyFrom(player_id, this.enemies)
+  }
+
+  onMatchSummary({ summary, reason }) {
+    try { if (window.UK01Touch && window.UK01Touch.hide) window.UK01Touch.hide(); } catch (_) {}
+    try { clientSocket.emit('leave game'); } catch (_) {}
+
+    this.state.start('Win', true, false, { mode: 'horde', summary, reason: reason || 'horde_end' });
   }
 
   onPlayerWin(payload) {

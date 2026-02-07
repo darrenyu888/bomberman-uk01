@@ -3,13 +3,17 @@ import { Text } from '../helpers/elements';
 class Win extends Phaser.State {
 
   init(payload) {
-    // payload may be a string skin or { skin, reason }
+    // payload may be a string skin or { skin, reason, summary, mode }
     if (payload && typeof payload === 'object') {
       this.skin = payload.skin;
       this.reason = payload.reason;
+      this.summary = payload.summary || null;
+      this.mode = payload.mode || null;
     } else {
       this.skin = payload;
       this.reason = null;
+      this.summary = null;
+      this.mode = null;
     }
   }
 
@@ -61,6 +65,15 @@ class Win extends Phaser.State {
   }
 
   winnerText() {
+    if (this.summary && (this.summary.mode === 'horde' || this.mode === 'horde')) {
+      const s = this.summary;
+      const dur = (s.durationMs != null) ? (s.durationMs / 1000).toFixed(1) : null;
+      const teamKills = (s.teamKills != null) ? s.teamKills : 0;
+      const top = (s.perPlayer && s.perPlayer[0]) ? s.perPlayer[0] : null;
+      const topLine = top ? `${top.displayName || top.skin}: ${(top.survivalMs/1000).toFixed(1)}s, ${top.kills} kills` : '';
+      return `HORDE ended. Time: ${dur || '?'}s  Team Kills: ${teamKills}\n${topLine}\nTap to return to main menu.`;
+    }
+
     if (this.skin) {
       const why = this.reason ? ` (reason: ${this.reason})` : '';
       return `Player: "${this.skin}" won!${why} Tap to return to main menu.`

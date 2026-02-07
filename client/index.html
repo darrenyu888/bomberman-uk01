@@ -290,6 +290,13 @@
 
       <div id='map-picker' class='hidden'>
         <div class='menu-title'>Select Map</div>
+        <div class='menu-row'>
+          <div class='menu-subtitle'>Mode</div>
+          <div class='inline-controls'>
+            <button class='chip mode active' data-mode='classic'>Classic</button>
+            <button class='chip mode' data-mode='horde'>Horde</button>
+          </div>
+        </div>
         <div class='map-grid'>
           <button class='map-btn' data-map='hot_map'>Hot</button>
           <button class='map-btn' data-map='cold_map'>Cold</button>
@@ -311,6 +318,11 @@
       <div id='pending-title' class='menu-title'>Pending Game</div>
 
       <div class='menu-row'>
+        <div class='menu-subtitle'>Mode</div>
+        <div id='pending-mode' class='chip label'>Classic</div>
+      </div>
+
+      <div id='ai-row-count' class='menu-row'>
         <div class='menu-subtitle'>AI 數量</div>
         <div class='inline-controls'>
           <button id='ai-minus' class='chip'>-</button>
@@ -319,7 +331,7 @@
         </div>
       </div>
 
-      <div class='menu-row'>
+      <div id='ai-row-diff' class='menu-row'>
         <div class='menu-subtitle'>AI 難度</div>
         <div class='inline-controls'>
           <button class='chip diff' data-diff='easy'>Easy</button>
@@ -407,6 +419,28 @@
         showMenu();
       });
 
+      // Mode selection (Classic/Horde)
+      let selectedMode = 'classic';
+      function setMode(m) {
+        selectedMode = (m === 'horde') ? 'horde' : 'classic';
+        try {
+          menu.querySelectorAll('.chip.mode').forEach(el => {
+            el.classList.toggle('active', el.getAttribute('data-mode') === selectedMode);
+          });
+        } catch (_) {}
+      }
+      setMode('classic');
+
+      // Handle mode chips
+      menu.addEventListener('click', (e) => {
+        const mbtn = e.target && e.target.closest && e.target.closest('.chip.mode');
+        if (mbtn) {
+          const m = mbtn.getAttribute('data-mode');
+          setMode(m);
+          return;
+        }
+      });
+
       // Map choose
       menu.addEventListener('click', (e) => {
         const b = e.target && e.target.closest && e.target.closest('.map-btn');
@@ -419,7 +453,7 @@
           window.clientSocket.emit('leave lobby');
         } catch (_) {}
 
-        window.clientSocket.emit('create game', map, (payload) => {
+        window.clientSocket.emit('create game', { map_name: map, mode: selectedMode }, (payload) => {
           if (payload && payload.error) {
             alert(payload.message || payload.error);
             return;
@@ -601,6 +635,9 @@
     (function(){
       const pending = document.getElementById('pending-overlay');
       const titleEl = document.getElementById('pending-title');
+      const modeEl = document.getElementById('pending-mode');
+      const aiRowCount = document.getElementById('ai-row-count');
+      const aiRowDiff = document.getElementById('ai-row-diff');
       const aiCountEl = document.getElementById('ai-count');
       const btnMinus = document.getElementById('ai-minus');
       const btnPlus = document.getElementById('ai-plus');
@@ -635,6 +672,14 @@
         if (!current_game) return;
         joined = true;
         if (current_game.name) titleEl.textContent = current_game.name;
+
+        // show mode + toggle AI controls
+        const mode = (current_game.mode === 'horde') ? 'Horde' : 'Classic';
+        if (modeEl) modeEl.textContent = mode;
+
+        const isHorde = (current_game.mode === 'horde');
+        if (aiRowCount) aiRowCount.style.display = isHorde ? 'none' : '';
+        if (aiRowDiff) aiRowDiff.style.display = isHorde ? 'none' : '';
 
         // enable start when at least 1 player
         const players = current_game.players ? Object.keys(current_game.players).length : 0;

@@ -18,7 +18,7 @@ var Lobby = {
     this.leave(lobbyId);
   },
 
-  onCreateGame: function(map_name, callback) {
+  onCreateGame: function(mapOrPayload, callback) {
     // Limit: same IP + same user (socket) can create at most 2 pending games.
     // Note: there is no auth layer, so we treat "user" as the current socket connection.
     const headers = (this.handshake && this.handshake.headers) || {};
@@ -31,7 +31,11 @@ var Lobby = {
       return;
     }
 
-    var newGame = new Game({ map_name: map_name });
+    const payload = (mapOrPayload && typeof mapOrPayload === 'object') ? mapOrPayload : { map_name: mapOrPayload };
+    const map_name = payload.map_name;
+    const mode = payload.mode;
+
+    var newGame = new Game({ map_name: map_name, mode });
     // track creator for rate-limiting
     newGame.creator = { ip, socketId: this.id, createdAt: Date.now() };
 
@@ -68,9 +72,11 @@ var Lobby = {
       }
     } catch (_) {}
 
-    // Auto-fill with server-side bots up to max players (Normal difficulty)
-    if (!current_game.isFull()) {
-      Bots.ensureBotsInPendingGame(current_game);
+    // Auto-fill with server-side bots up to max players (Classic mode only)
+    if (current_game.mode !== 'horde') {
+      if (!current_game.isFull()) {
+        Bots.ensureBotsInPendingGame(current_game);
+      }
     }
 
     if ( current_game.isFull() ){
@@ -83,6 +89,7 @@ var Lobby = {
   onSetAICount: function({ count }) {
     let current_game = pendingGames.get(this.socket_game_id);
     if (!current_game) return;
+    if (current_game.mode === 'horde') return;
 
     Bots.setDesiredBots(current_game, count);
     Bots.ensureBotsInPendingGame(current_game);
@@ -93,6 +100,7 @@ var Lobby = {
   onSetAIDifficulty: function({ difficulty }) {
     let current_game = pendingGames.get(this.socket_game_id);
     if (!current_game) return;
+    if (current_game.mode === 'horde') return;
 
     Bots.setDifficulty(current_game, difficulty);
     Lobby.updateCurrentGame(current_game);

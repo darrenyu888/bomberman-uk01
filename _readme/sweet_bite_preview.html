@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>甜心咬咬 (Sweet Bite) - 32x32 預覽</title>
+    <style>
+        body {
+            background-color: #222;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: monospace;
+        }
+        .container {
+            text-align: center;
+        }
+        /* 放大顯示像素 */
+        svg {
+            width: 320px;
+            height: 320px; /* 放大 10 倍 */
+            border: 2px solid #555;
+            background-image: 
+                linear-gradient(45deg, #333 25%, transparent 25%), 
+                linear-gradient(-45deg, #333 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #333 75%), 
+                linear-gradient(-45deg, transparent 75%, #333 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            image-rendering: pixelated; /* 確保像素清晰 */
+        }
+
+        /* 動畫定義 */
+        @keyframes hover {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-1px); }
+        }
+        @keyframes tail-wag {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(5deg); }
+        }
+        @keyframes heart-pulse {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #ff69b4); }
+            50% { opacity: 0.7; filter: drop-shadow(0 0 0px #ff69b4); }
+        }
+        @keyframes lure-sway {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        /* 應用動畫 */
+        #monster-group {
+            animation: hover 2s infinite ease-in-out;
+            transform-origin: center;
+        }
+        #tail {
+            animation: tail-wag 1s infinite ease-in-out;
+            transform-origin: 6px 16px; /* 尾巴根部 */
+        }
+        #lantern-light {
+            animation: heart-pulse 1.5s infinite ease-in-out;
+        }
+        #lure {
+            animation: lure-sway 2s infinite ease-in-out;
+            transform-origin: 22px 22px; /* 嘴角 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>甜心咬咬 (Sweet Bite)</h1>
+        <p>32x32 Pixel Art Preview (x10 Zoom)</p>
+        
+        <!-- SVG Pixel Art -->
+        <!-- ViewBox 0 0 32 32 定義畫布大小 -->
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+            <g id="monster-group">
+                <!-- 尾巴 (Tail) -->
+                <g id="tail">
+                     <!-- 深藍輪廓 -->
+                    <rect x="2" y="14" width="6" height="4" fill="#191970"/>
+                    <rect x="1" y="13" width="2" height="6" fill="#191970"/>
+                    <!-- 身體色 -->
+                    <rect x="3" y="15" width="4" height="2" fill="#008080"/>
+                    <rect x="2" y="14" width="1" height="4" fill="#008080"/>
+                </g>
+
+                <!-- 身體主體 (Body) -->
+                <!-- 輪廓 -->
+                <path d="M8 10 h16 v2 h2 v2 h2 v8 h-2 v2 h-2 v2 h-16 v-2 h-2 v-2 h-2 v-8 h2 v-2 h2 z" fill="#191970" />
+                <!-- 填充主色 (Teal) -->
+                <path d="M9 11 h14 v2 h2 v2 h2 v6 h-2 v2 h-2 v1 h-14 v-1 h-2 v-2 h-2 v-6 h2 v-2 h2 z" fill="#008080" />
+                
+                <!-- 肚子高光 (Highlight) -->
+                <rect x="10" y="18" width="6" height="4" fill="#00CED1" opacity="0.6"/>
+                <rect x="12" y="22" width="4" height="1" fill="#00CED1" opacity="0.6"/>
+
+                <!-- 眼睛 (Eyes) -->
+                <rect x="12" y="14" width="2" height="2" fill="#191970"/> <!-- 左眼 -->
+                <rect x="18" y="14" width="2" height="2" fill="#191970"/> <!-- 右眼 -->
+                <rect x="12" y="14" width="1" height="1" fill="#FFF"/> <!-- 左眼光 -->
+                <rect x="18" y="14" width="1" height="1" fill="#FFF"/> <!-- 右眼光 -->
+
+                <!-- 嘴巴 (Mouth) - 是一個陷進去的深色區塊 -->
+                <path d="M22 18 h4 v2 h-2 v2 h-2 z" fill="#191970"/>
+                
+                <!-- 牙齒 (Teeth) -->
+                <rect x="22" y="21" width="1" height="1" fill="#FFF"/>
+                <rect x="24" y="20" width="1" height="1" fill="#FFF"/>
+
+                <!-- 燈竿 (Lantern Rod) -->
+                <path d="M15 10 v-3 h1 v-1 h2 v1 h1 v3" fill="#191970"/>
+                
+                <!-- 愛心燈 (Heart Light) -->
+                <g id="lantern-light">
+                    <!-- 像素愛心 -->
+                    <path d="M16 4 h1 v1 h1 v1 h-1 v1 h-1 v1 h-1 v-1 h-1 v-1 h1 v-1 h1 z" fill="#FF69B4"/>
+                    <!-- 亮點 -->
+                    <rect x="16" y="5" width="1" height="1" fill="#FFF" opacity="0.8"/>
+                </g>
+
+                <!-- 誘餌 (Lure) -->
+                <g id="lure">
+                    <rect x="24" y="20" width="1" height="4" fill="#FFB6C1"/>
+                    <rect x="23" y="24" width="3" height="3" fill="#FF69B4"/> <!-- 小誘餌球 -->
+                </g>
+            </g>
+        </svg>
+
+        <div style="margin-top: 20px;">
+            <p><strong>動作說明：</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Idle: 身體上下浮動 (Hover)</li>
+                <li>Tail: 輕微擺動 (Wag)</li>
+                <li>Heart: 脈衝閃爍 (Pulse)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

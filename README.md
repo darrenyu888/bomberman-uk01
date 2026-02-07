@@ -7,7 +7,92 @@
 
 ---
 
-## 特色（UK01 fork）
+## 🦞 Abyssal Bomber (Project Codename) Update (2026-02-07)
+
+本專案正在進行深海主題改版（Codename: Abyssal Bomber）。
+
+### 🎨 Visual Style (美術風格)
+- **Style**: 16-bit SNES Pixel Art (超任像素風)
+- **Perspective**: Top-down Grid (俯視網格)
+- **Palette**: Deep Ocean (Dark Blues, Teals, Bioluminescent Neon Pinks/Greens)
+- **Sprite Size**: 32x32px (Grid), 24x24px (Collision Box)
+
+### 🎁 Items & Power-ups (道具圖鑑)
+
+#### Basic Items (基礎強化)
+| Icon | Name | Effect (作用) |
+| :--- | :--- | :--- |
+| 🔥 | **Fire (火力)** | 增加炸彈爆炸的延伸長度 (+1 格)。 |
+| 💣 | **Bomb (炸彈)** | 增加同時可放置的炸彈數量 (+1 顆)。 |
+| ⛸️ | **Speed (速度)** | 增加角色移動速度。 |
+
+#### Special Items (特殊能力)
+| Icon | Name | Effect (作用) |
+| :--- | :--- | :--- |
+| 🥊 | **Kick (踢踢腳)** | 允許踢開擋路的炸彈（踢出去的炸彈會滑行直到撞牆）。 |
+| 🎮 | **Remote (遙控器)** | 放置的炸彈不會自動爆炸，按 B 鍵（或點擊炸彈鈕）手動引爆。 |
+| 🛡️ | **Shield (護盾)** | 獲得短暫的無敵時間（約 15 秒），可抵擋一次傷害。 |
+| 👻 | **Ghost (穿牆)** | 允許穿過軟牆（可破壞障礙物）和炸彈，持續約 15 秒。 |
+
+### 👾 Monster Bestiary (怪物圖鑑)
+
+#### 1. Sweet Bite (甜心咬咬)
+*A deceptive anglerfish that uses a cute heart-shaped light to lure prey.*
+
+- **Visuals**:
+  - **Body**: Round, Teal/Green (`#008080`)
+  - **Lure**: Glowing Pink Heart (`#FF69B4`) on a short rod
+  - **Feature**: Small "tadpole" lure dangling from mouth corner
+  - **Expression**: Cute white triangle teeth, turns scary when attacking
+
+- **Animations**:
+  - **Idle**: Bobbing up/down (1px), Heart pulsing.
+  - **Walk**: Squashing and stretching like a jellyfish.
+  - **Attack (Bite)**: Mouth opens wide (exaggerated 90°), teeth extend, lunges forward.
+  - **Stun**: Upside down, X eyes, tongue out.
+
+- **Behavior**:
+  - **Pattern**: Patrols hallways.
+  - **Aggro**: Accelerates when player enters the same row/column.
+  - **Trap**: Feigns passivity until close range.
+
+### 🗺️ Map Design (地圖設計)
+
+#### Theme: The Abyssal Trench (深海海溝)
+- **Vibe**: Dark, claustrophobic, illuminated by glowing flora and enemies.
+
+#### Tilesets (32x32)
+1.  **Floor**:
+    - Dark blue seabed sand.
+    - Occasional glowing plankton (animated pixels).
+2.  **Hard Blocks (Indestructible)**:
+    - Ancient Shipwreck Metal (rusty rivets).
+    - Black Volcanic Rock.
+3.  **Soft Blocks (Destructible)**:
+    - **Brain Coral**: Pink/Purple, pulsates slightly.
+    - **Tube Sponges**: Green, tall vertical structures.
+    - **Crates**: Waterlogged wooden crates with barnacles.
+
+### 🐰 Character Design (角色造型)
+
+#### Pink Rabbit (粉紅兔兔)
+*Just a normal Pink Rabbit. No diving gear. Just vibing.*
+
+- **Visuals**:
+  - **Color**: Hot Pink / Pastel Pink (`#FFB6C1`)
+  - **Style**: Classic "Bomberman" mascot style (Big head, simple body).
+  - **Equipment**: **None.** No helmet, no tank. Just a rabbit in the deep sea. (Cartoon logic).
+  - **Expression**: Determined or Cheerful (`>‿<`).
+
+- **Animations**:
+  - **Idle**: Breathing, ears twitching.
+  - **Walk**: Bouncy run cycle.
+  - **Bomb**: Tossing a standard black bomb (or carrot bomb).
+  - **Death**: Classic spin-and-flatten or "burnt toast" face.
+
+---
+
+## 特色（UK01 fork 舊有功能）
 
 ### 2026-02-06 更新摘要
 - 建置工具更新（Webpack/Babel）並加入 `package-lock.json`（偏向 **npm** 的可重現安裝）。

@@ -201,6 +201,30 @@ class Play extends Phaser.State {
     clientSocket.on('sudden death tiles', this.onSuddenDeathTiles.bind(this));
     clientSocket.on('spawn player', this.onSpawnPlayer.bind(this));
     clientSocket.on('match summary', this.onMatchSummary.bind(this));
+    clientSocket.on('player hit', this.onPlayerHit.bind(this));
+  }
+
+  onPlayerHit({ player_id, lives }) {
+    // Visual feedback for taking damage but surviving
+    const p = (this.player && this.player.id === player_id) ? this.player : findFrom(player_id, this.enemies);
+    if (!p) return;
+
+    // Flash effect
+    if (p.flickerTimer) { this.game.time.events.remove(p.flickerTimer); }
+    p.alpha = 1;
+    let count = 0;
+    p.flickerTimer = this.game.time.events.loop(100, () => {
+      p.alpha = (p.alpha === 1) ? 0.3 : 1;
+      count++;
+      if (count > 28) { // ~3s
+        this.game.time.events.remove(p.flickerTimer);
+        p.alpha = 1;
+      }
+    });
+
+    // Optional: show lives text above head?
+    // We don't have UI for it yet, but blinking indicates damage.
+    try { if (this.sfxDeath) this.sfxDeath.play(); } catch (_) {}
   }
 
   onPlayerVsSpoil(player, spoil) {
@@ -213,10 +237,18 @@ class Play extends Phaser.State {
     // Shield powerup: brief invulnerability
     if (player.isShielded && player.isShielded()) return;
 
-    try { if (this.sfxDeath) this.sfxDeath.play(); } catch (_) {}
+    // Do NOT play death sound here, wait for server to confirm hit/death
+    // try { if (this.sfxDeath) this.sfxDeath.play(); } catch (_) {}
+
+    // Throttle reporting to avoid spamming "player died" for every blast tile overlap
+    const now = this.game.time.now;
+    if (player._lastDeathReport && now - player._lastDeathReport < 500) return;
+    player._lastDeathReport = now;
 
     clientSocket.emit('player died', { col: player.currentCol(), row: player.currentRow() });
-    player.becomesDead()
+    
+    // Do NOT kill local player immediately. Wait for server 'show bones' or 'player hit'.
+    // player.becomesDead() 
   }
 
   onMovePlayer({ player_id, x, y }) {

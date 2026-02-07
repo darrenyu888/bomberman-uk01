@@ -46,6 +46,7 @@ function getOrCreateUserFromGoogle({ sub, email, name, picture }) {
     gmail: email, // keep explicit gmail field for admin/backoffice
     picture: picture || existing.picture || null,
     displayName: existing.displayName || name || 'Player',
+    avatarParts: existing.avatarParts || null,
     createdAt: existing.createdAt || Date.now(),
     updatedAt: Date.now(),
   };

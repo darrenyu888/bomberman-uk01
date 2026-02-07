@@ -261,7 +261,14 @@ var Play = {
 
           if (p.shield_until && Date.now() < p.shield_until) continue;
 
-          p.dead();
+          const died = p.dead();
+          
+          if (!died) {
+             // Just took damage
+             serverSocket.sockets.to(game_id).emit('player hit', { player_id: pid, lives: p.lives });
+             continue; // Don't show bones, don't end game
+          }
+
           someoneDied = true;
 
           // Horde survival time tracking
@@ -492,8 +499,22 @@ var Play = {
     }
 
     // Horde end condition: all humans dead
-    if (current_game.mode === 'horde' && aliveHumans <= 0) {
-      emitHordeSummaryAndCleanup({ game: current_game, reason: 'all_humans_dead' });
+    // Also applies if we are treating bots as Monsters (PvE)
+    if (aliveHumans <= 0) {
+      if (current_game.mode === 'horde') {
+        emitHordeSummaryAndCleanup({ game: current_game, reason: 'all_humans_dead' });
+      } else {
+        // Classic mode with bots: If all humans dead, monsters/bots win immediately.
+        serverSocket.sockets.to(game_id).emit('player win', {
+          skin: 'monster', 
+          player_id: 'bot:monster',
+          reason: 'all_humans_dead'
+        });
+        
+        try { Bots.stopBotsForGame(game_id); } catch (_) {}
+        clearMatchTimer(current_game);
+        setTimeout(() => { try { runningGames.delete(game_id); } catch (_) {} }, 5000);
+      }
       return;
     }
 

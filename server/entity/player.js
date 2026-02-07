@@ -38,6 +38,8 @@ class Player {
     this.hasKick = false;
     this.ghost_until = 0;
 
+    this.lives = 3; // 3 Lives System
+
     // last known position (pixels + grid), updated by server on 'update player position'
     this.position = { x: spawn.x, y: spawn.y, col: spawnOnGrid.col, row: spawnOnGrid.row, ts: Date.now() };
   }
@@ -84,7 +86,14 @@ class Player {
   }
 
   dead() {
+    if (this.lives > 1) {
+      this.lives--;
+      this.shield_until = Date.now() + 3000; // 3s invulnerability
+      return false; // Not dead yet
+    }
+    this.lives = 0;
     this.isAlive = false;
+    return true; // Actually dead
   }
 
 }

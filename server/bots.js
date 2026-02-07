@@ -16,9 +16,9 @@ const TILE_PORTAL = 2;
 const TILE_SPEED_FLOOR = 3;
 
 const BOT_DIFFICULTY_PROFILES = {
-  easy:   { reactionDelayMs: 260, aggression: 0.35, validateEscape: false, portalCooldownMs: 1200, speedMultiplier: 1.35 },
-  normal: { reactionDelayMs: 120, aggression: 0.55, validateEscape: true,  portalCooldownMs: 900,  speedMultiplier: 1.65 },
-  hard:   { reactionDelayMs: 40,  aggression: 0.85, validateEscape: true,  portalCooldownMs: 650,  speedMultiplier: 1.85 },
+  easy:   { reactionDelayMs: 450, aggression: 0.20, validateEscape: false, portalCooldownMs: 1500, speedMultiplier: 0.85, wallhack: false },
+  normal: { reactionDelayMs: 250, aggression: 0.40, validateEscape: true,  portalCooldownMs: 1100, speedMultiplier: 1.05, wallhack: false },
+  hard:   { reactionDelayMs: 100, aggression: 0.75, validateEscape: true,  portalCooldownMs: 700,  speedMultiplier: 1.35, wallhack: true },
 };
 
 function difficultyForGame(game) {
@@ -816,12 +816,12 @@ function createBotInterval({ game, botId, stateMap, playModule }) {
         });
       }
 
-      // Auto-pick spoils on the tile
+      // Auto-pick spoils on the tile (Monsters eat spoils?)
       const spoil = findSpoilAt(game, s.row, s.col);
       if (spoil) {
         try {
           game.deleteSpoil(spoil.id);
-          p.pickSpoil(spoil.spoil_type);
+          // p.pickSpoil(spoil.spoil_type); // Monsters don't get buffs, they just destroy items
           global.serverSocket.sockets.to(game.id).emit('spoil was picked', {
             player_id: botId,
             spoil_id: spoil.id,

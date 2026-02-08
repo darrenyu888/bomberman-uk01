@@ -3,12 +3,13 @@ var { Game } = require('./entity/game');
 var Bots     = require('./bots');
 var Horde    = require('./horde');
 
-const { TILE_SIZE, EMPTY_CELL } = require('./constants');
+const { TILE_SIZE, EMPTY_CELL, NON_DESTRUCTIBLE_CELL } = require('./constants');
 
 var runningGames = new Map();
 
 // Do NOT store Node.js Timeout objects on the game object (Socket.IO cannot serialize them and may crash).
 const matchTimersByGameId = new Map(); // gameId -> timeoutId
+const suddenDeathIntervalsByGameId = new Map(); // gameId -> intervalId
 
 function clearMatchTimer(gameOrId) {
   try {
@@ -18,6 +19,18 @@ function clearMatchTimer(gameOrId) {
     if (t) {
       clearTimeout(t);
       matchTimersByGameId.delete(gameId);
+    }
+  } catch (_) {}
+}
+
+function clearSuddenDeathInterval(gameOrId) {
+  try {
+    const gameId = (typeof gameOrId === 'string') ? gameOrId : (gameOrId && gameOrId.id);
+    if (!gameId) return;
+    const t = suddenDeathIntervalsByGameId.get(gameId);
+    if (t) {
+      clearInterval(t);
+      suddenDeathIntervalsByGameId.delete(gameId);
     }
   } catch (_) {}
 }
@@ -43,6 +56,7 @@ function emitHordeSummaryAndCleanup({ game, reason }) {
   try { Bots.stopBotsForGame(game_id); } catch (_) {}
   try { Horde.stopHordeForGame(game_id); } catch (_) {}
   clearMatchTimer(game_id);
+  clearSuddenDeathInterval(game_id);
 
   setTimeout(() => {
     try { runningGames.delete(game_id); } catch (_) {}
@@ -75,6 +89,7 @@ function emitWinAndCleanup({ game, reason }) {
   try { Bots.stopBotsForGame(game_id); } catch (_) {}
   try { Horde.stopHordeForGame(game_id); } catch (_) {}
   clearMatchTimer(game_id);
+  clearSuddenDeathInterval(game_id);
 
   setTimeout(() => {
     try { runningGames.delete(game_id); } catch (_) {}
@@ -85,7 +100,10 @@ var Play = {
   onLeaveGame: function (data) {
     // Stop bots and drop running game state
     const g = runningGames.get(this.socket_game_id);
-    if (g) clearMatchTimer(g.id);
+    if (g) {
+      clearMatchTimer(g.id);
+      clearSuddenDeathInterval(g.id);
+    }
 
     Bots.stopBotsForGame(this.socket_game_id);
     try { Horde.stopHordeForGame(this.socket_game_id); } catch (_) {}
@@ -123,9 +141,11 @@ var Play = {
 
     // Match timer: Classic only (Horde is survival-based)
     if (game.mode !== 'horde') {
-      // Hard time limit: 3 minutes max per match.
+      // Hard time limit: 4 minutes max per match (classic feel: 3–5 min)
+      // + Sudden death skyfall in the last ~70s.
       try {
         clearMatchTimer(game.id);
+        const MAX_MS = 240000;
         const tid = setTimeout(() => {
           try {
             const g = runningGames.get(game.id);
@@ -133,13 +153,114 @@ var Play = {
             const alive = Object.values(g.players || {}).filter(p => p && p.isAlive).length;
             if (alive <= 1) return;
 
-            emitWinAndCleanup({ game: g, reason: 'timeout_3m' });
+            emitWinAndCleanup({ game: g, reason: 'timeout_4m' });
           } catch (_) {}
-        }, 180000);
+        }, MAX_MS);
         matchTimersByGameId.set(game.id, tid);
+
+        // Sudden death: drop walls + random bombs from sky
+        clearSuddenDeathInterval(game.id);
+        const startAt = Date.now() + (MAX_MS - 70000); // last 70s
+        const edgePick = (g, n) => {
+          const drops = [];
+          try {
+            const h = g.shadow_map.length;
+            const w = g.shadow_map[0].length;
+            const candidates = [];
+            for (let col = 1; col < w - 1; col++) {
+              candidates.push({ row: 1, col });
+              candidates.push({ row: h - 2, col });
+            }
+            for (let row = 2; row < h - 2; row++) {
+              candidates.push({ row, col: 1 });
+              candidates.push({ row, col: w - 2 });
+            }
+            // shuffle
+            for (let i = candidates.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              const t = candidates[i];
+              candidates[i] = candidates[j];
+              candidates[j] = t;
+            }
+
+            const isBlocked = (r, c) => {
+              if (g.getMapCell(r, c) !== EMPTY_CELL) return true;
+              if (g.findBombAt(r, c)) return true;
+              // avoid dropping onto alive player positions
+              for (const p of Object.values(g.players || {})) {
+                if (!p || !p.isAlive) continue;
+                const pos = p.position || {};
+                const pr = (typeof pos.row === 'number') ? pos.row : Math.floor((pos.y || 0) / TILE_SIZE);
+                const pc = (typeof pos.col === 'number') ? pos.col : Math.floor((pos.x || 0) / TILE_SIZE);
+                if (pr === r && pc === c) return true;
+              }
+              return false;
+            };
+
+            for (const cell of candidates) {
+              if (drops.length >= n) break;
+              if (isBlocked(cell.row, cell.col)) continue;
+              drops.push(cell);
+            }
+          } catch (_) {}
+          return drops;
+        };
+
+        const interval = setInterval(() => {
+          try {
+            const g = runningGames.get(game.id);
+            if (!g) return;
+            const alive = Object.values(g.players || {}).filter(p => p && p.isAlive).length;
+            if (alive <= 1) return;
+            if (Date.now() < startAt) return;
+
+            g.suddenDeathLevel = Math.min(8, (Number(g.suddenDeathLevel) || 0) + 1);
+            const lvl = Number(g.suddenDeathLevel) || 1;
+
+            // 1) Walls
+            const wallDrops = edgePick(g, Math.min(12, 3 + lvl));
+            if (wallDrops.length) {
+              for (const d of wallDrops) {
+                try { g.shadow_map[d.row][d.col] = NON_DESTRUCTIBLE_CELL; } catch (_) {}
+              }
+              serverSocket.sockets.in(g.id).emit('sudden death tiles', {
+                level: lvl,
+                tiles: wallDrops.map(d => ({ col: d.col, row: d.row, kind: 'wall' }))
+              });
+            }
+
+            // 2) Sky bombs (small chance each tick)
+            if (Math.random() < 0.65) {
+              const bombDrops = edgePick(g, Math.min(3, 1 + Math.floor(lvl / 2)));
+              for (const d of bombDrops) {
+                const b = g.addBomb({ col: d.col, row: d.row, power: 2, owner_id: 'sky' });
+                if (!b) continue;
+                b.created_at = Date.now();
+                b.explosion_time = 1200;
+                // Schedule detonation using bomb entity (server-authoritative)
+                try {
+                  const det = () => {
+                    try {
+                      let blastedCells = b.detonate();
+                      try { g.deleteBomb(b.id); } catch (_) {}
+                      serverSocket.sockets.to(g.id).emit('detonate bomb', { bomb_id: b.id, blastedCells });
+                    } catch (_) {}
+                  };
+                  if (b._timer2) clearTimeout(b._timer2);
+                  b._timer2 = setTimeout(det, b.explosion_time);
+                } catch (_) {}
+
+                serverSocket.sockets.to(g.id).emit('show bomb', { bomb_id: b.id, col: b.col, row: b.row });
+              }
+            }
+          } catch (_) {}
+        }, 4500);
+
+        suddenDeathIntervalsByGameId.set(game.id, interval);
       } catch (_) {}
     } else {
       clearMatchTimer(game.id);
+      clearSuddenDeathInterval(game.id);
     }
 
     // Ensure authenticated profile fields (displayName/avatarParts) are present at launch

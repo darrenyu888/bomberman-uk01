@@ -648,7 +648,15 @@ function applyBlastToBots({ game, blastedCells, killerId }) {
       if (p.shield_until && Date.now() < p.shield_until) {
         continue;
       }
-      p.dead();
+      const died = p.dead();
+      if (!died) {
+        // Bot took damage but is still alive (lives system). Do NOT remove it from clients.
+        try {
+          global.serverSocket.sockets.to(game.id).emit('player hit', { player_id: botId, lives: p.lives });
+        } catch (_) {}
+        continue;
+      }
+
       someoneDied = true;
 
       // Horde scoring: attribute bot kills to bomb owner (killerId)

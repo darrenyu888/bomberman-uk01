@@ -137,14 +137,26 @@ function startHordeForRunningGame({ game }) {
           if (Object.keys(game.players || {}).length >= maxSlots) break;
           game.addPlayer(id);
 
-          // Give horde NPCs a visible character variant
+          // Give horde NPCs a visible character variant + archetype
           try {
             const p = game.players && game.players[id];
             if (p) {
-              p.displayName = p.displayName || 'NPC';
+              const types = [
+                { key: 'chaser',  name: '追擊者', char: 'char_5', w: 28 },
+                { key: 'miner',   name: '工兵',   char: 'char_7', w: 18 },
+                { key: 'sniper',  name: '狙擊手', char: 'char_6', w: 18 },
+                { key: 'ghoster', name: '幽靈',   char: 'char_8', w: 18 },
+                { key: 'trapper', name: '陷阱師', char: 'char_2', w: 18 },
+              ];
+              let total = types.reduce((s, x) => s + x.w, 0);
+              let r = Math.random() * total;
+              let pick = types[0];
+              for (const t of types) { if (r < t.w) { pick = t; break; } r -= t.w; }
+
+              p.npcType = pick.key;
+              p.displayName = pick.name;
               p.avatarParts = p.avatarParts || {};
-              // Use a fixed character for now (can randomize later)
-              p.avatarParts.character = p.avatarParts.character || 'char_6';
+              p.avatarParts.character = pick.char;
             }
           } catch (_) {}
 

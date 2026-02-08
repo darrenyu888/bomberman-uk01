@@ -769,9 +769,61 @@ function createBotInterval({ game, botId, stateMap, playModule }) {
           const human = findNearestHuman(game, botId);
           const destr = findNearestDestructible(game, botId, 9);
 
-          if (human && hasLineOfSight(game, s.col, s.row, human.col, human.row)) {
-            next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 14);
-          } else if (destr) {
+          const npcType = (p && p.npcType) ? String(p.npcType) : 'default';
+
+          // Movement goals by NPC archetype
+          if (npcType === 'miner') {
+            // Prefer breaking boxes / farming spoils
+            if (destr) {
+              const approach = [
+                { col: destr.col + 1, row: destr.row },
+                { col: destr.col - 1, row: destr.row },
+                { col: destr.col, row: destr.row + 1 },
+                { col: destr.col, row: destr.row - 1 },
+              ].filter(t => isWalkable(game, t.row, t.col) && !danger.has(`${t.col},${t.row}`) && !blocks.has(`${t.col},${t.row}`));
+
+              let best = null;
+              for (const a of approach) {
+                const step = bfsNextStepToTarget(game, s.col, s.row, a.col, a.row, { danger, blocks }, 16);
+                if (step.dist === Infinity) continue;
+                if (!best || step.dist < best.dist) best = step;
+              }
+
+              next = best ? { col: best.col, row: best.row } : pickNextStep(game, s.col, s.row);
+            } else if (human) {
+              next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 12);
+            } else {
+              next = pickNextStep(game, s.col, s.row);
+            }
+          } else if (npcType === 'sniper') {
+            // Try to keep line-of-sight without hugging the player
+            if (human) {
+              const dist = Math.abs(human.col - s.col) + Math.abs(human.row - s.row);
+              const los = hasLineOfSight(game, s.col, s.row, human.col, human.row);
+              if (los && dist <= 2) {
+                // back off to avoid self-bomb
+                const step = bfsNextStepToSafety(game, s.col, s.row, { danger, blocks }, 10);
+                next = { col: step.col, row: step.row };
+              } else {
+                next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 14);
+              }
+            } else {
+              next = pickNextStep(game, s.col, s.row);
+            }
+          } else if (npcType === 'chaser') {
+            // Always chase humans (even without LoS)
+            if (human) {
+              next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 16);
+            } else if (destr) {
+              next = bfsNextStepToTarget(game, s.col, s.row, destr.col, destr.row, { danger, blocks }, 10);
+            } else {
+              next = pickNextStep(game, s.col, s.row);
+            }
+          } else {
+            // default/ghoster/trapper: current heuristic
+            if (human && hasLineOfSight(game, s.col, s.row, human.col, human.row)) {
+              next = bfsNextStepToTarget(game, s.col, s.row, human.col, human.row, { danger, blocks }, 14);
+            } else if (destr) {
             const approach = [
               { col: destr.col + 1, row: destr.row },
               { col: destr.col - 1, row: destr.row },
@@ -789,6 +841,9 @@ function createBotInterval({ game, botId, stateMap, playModule }) {
             next = best ? { col: best.col, row: best.row } : pickNextStep(game, s.col, s.row);
           } else {
             next = pickNextStep(game, s.col, s.row);
+          }
+
+          // close default/ghoster/trapper block
           }
 
           const nk = `${next.col},${next.row}`;
@@ -851,7 +906,17 @@ function createBotInterval({ game, botId, stateMap, playModule }) {
       if (now - (s.lastBombAt || 0) > bombCooldown) {
         if (isWalkable(game, s.row, s.col)) {
           const nearBox = adjacentToDestructible(game, s.col, s.row);
-          const bombChance = nearBox ? 0.92 : 0.45;
+          const npcType = (p && p.npcType) ? String(p.npcType) : 'default';
+
+          let bombChance = nearBox ? 0.92 : 0.45;
+          if (npcType === 'chaser') bombChance = nearBox ? 0.98 : 0.72;
+          if (npcType === 'trapper') {
+            bombChance = nearBox ? 0.995 : 0.68;
+            if ((p.mineAmmo || 0) > 0) bombChance = Math.max(bombChance, 0.9);
+          }
+          if (npcType === 'sniper') bombChance = nearBox ? 0.65 : 0.35;
+          if (npcType === 'miner') bombChance = nearBox ? 0.98 : 0.55;
+          if (npcType === 'ghoster') bombChance = nearBox ? 0.94 : 0.55;
 
           if (Math.random() < bombChance * profile.aggression) {
             let ok = true;

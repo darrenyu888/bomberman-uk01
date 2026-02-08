@@ -1,18 +1,4 @@
-<!doctype html>
-<html lang='en'>
-<head>
-  <title>Bomb Attack</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <link rel='stylesheet' href='css/base.css'/>
-
-  <script src='lib/phase-slide.js'></script>
-  <script src='lib/phaser.min.js'></script>
-  <script src='/socket.io/socket.io.js'></script>
-
-  <!-- Google Identity Services is loaded dynamically after /api/config -->
-
-  <script>
-    // Socket.IO
+<!doctype html><html lang="en"><head><title>Bomb Attack</title><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/><link rel="stylesheet" href="css/base.css"/><script src="lib/phase-slide.js"></script><script src="lib/phaser.min.js"></script><script src="/socket.io/socket.io.js"></script><script>// Socket.IO
     window.clientSocket = io.connect();
 
     // Minimal auth overlay (no webpack build needed)
@@ -226,153 +212,7 @@
       await refreshMe();
     }
 
-    window.addEventListener('load', initAuthOverlay);
-  </script>
-
-  <script src='bundle.js'></script>
-</head>
-<body>
-  <div id='auth-overlay' class='minimized'>
-    <div class='auth-row' style='margin-top:0'>
-      <div id='auth-status' style='flex:1'>載入中…</div>
-      <button id='audio-toggle' title='靜音/取消靜音'>🔊</button>
-      <button id='auth-toggle' title='顯示/收合'>帳號</button>
-    </div>
-
-    <div id='auth-body'>
-      <div class='auth-row'>
-        <div id='google-render'></div>
-        <button id='google-btn'>Google 登入</button>
-        <button id='auth-logout' style='display:none'>登出</button>
-        <a href='/leaderboard' target='_blank' style='display:inline-block;color:#fff;text-decoration:underline'>排行榜</a>
-      </div>
-      <div class='auth-row'>
-        <input id='auth-name' placeholder='自訂名稱 (1..24)' maxlength='24' />
-        <button id='auth-save-name' style='display:none'>儲存名稱</button>
-      </div>
-
-      <div class='auth-row'>
-        <div id='avatar-preview' class='avatar-preview' title='預覽（示意）'>
-          <div class='av-layer av-base' style="background-image:url(/images/game/cosmetics/base.png?v=20260206_14)"></div>
-        </div>
-
-        <select id='avatar-character'>
-          <option value=''>角色：預設</option>
-          <option value='char_1'>粉兔（開心）</option>
-          <option value='char_2'>粉兔（哭哭）</option>
-          <option value='char_3'>黃兔（開心）</option>
-          <option value='char_4'>黃兔（哭哭）</option>
-          <option value='char_5'>藍兔（開心）</option>
-          <option value='char_6'>藍兔（哭哭）</option>
-          <option value='char_7'>薄荷兔（開心）</option>
-          <option value='char_8'>薄荷兔（哭哭）</option>
-        </select>
-
-        <!-- legacy paper-doll selects (hidden) -->
-        <select id='avatar-hair' style='display:none'></select>
-        <select id='avatar-outfit' style='display:none'></select>
-        <select id='avatar-hat' style='display:none'></select>
-        <select id='avatar-face' style='display:none'></select>
-        <select id='avatar-pattern' style='display:none'></select>
-
-        <button id='avatar-save' style='display:none'>儲存角色</button>
-      </div>
-    </div>
-  </div>
-
-  <div id='menu-overlay' class='menu-overlay hidden'>
-    <div class='menu-panel'>
-      <div class='menu-title'>Main Menu</div>
-      <button id='btn-new-game' class='menu-btn'>New Game</button>
-      <div class='menu-row'>
-        <a class='menu-btn secondary' href='/leaderboard' target='_blank' style='display:block;text-align:center;line-height:1.2;text-decoration:none'>Leaderboard</a>
-      </div>
-
-      <div id='map-picker' class='hidden'>
-        <div class='menu-title'>Select Map</div>
-        <div class='menu-row'>
-          <div class='menu-subtitle'>Mode</div>
-          <div class='inline-controls'>
-            <button class='chip mode active' data-mode='classic'>Classic</button>
-            <button class='chip mode' data-mode='horde'>Horde</button>
-          </div>
-        </div>
-        <div class='map-grid'>
-          <button class='map-btn' data-map='hot_map'>Hot</button>
-          <button class='map-btn' data-map='cold_map'>Cold</button>
-          <button class='map-btn' data-map='arena_map'>Arena</button>
-          <button class='map-btn' data-map='open_map'>Open</button>
-          <button class='map-btn' data-map='rune_lab'>Rune Lab</button>
-          <button class='map-btn' data-map='mirror_temple'>Mirror</button>
-          <button class='map-btn' data-map='trap_garden'>Trap</button>
-        </div>
-        <div class='menu-row'>
-          <button id='btn-map-back' class='menu-btn secondary'>Back</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id='pending-overlay' class='menu-overlay hidden'>
-    <div class='menu-panel'>
-      <div id='pending-title' class='menu-title'>Pending Game</div>
-
-      <div class='menu-row'>
-        <div class='menu-subtitle'>Mode</div>
-        <div id='pending-mode' class='chip label'>Classic</div>
-      </div>
-
-      <div id='ai-row-count' class='menu-row'>
-        <div class='menu-subtitle'>AI 數量</div>
-        <div class='inline-controls'>
-          <button id='ai-minus' class='chip'>-</button>
-          <div id='ai-count' class='chip label'>3</div>
-          <button id='ai-plus' class='chip'>+</button>
-        </div>
-      </div>
-
-      <div id='ai-row-diff' class='menu-row'>
-        <div class='menu-subtitle'>AI 難度</div>
-        <div class='inline-controls'>
-          <button class='chip diff' data-diff='easy'>Easy</button>
-          <button class='chip diff active' data-diff='normal'>Normal</button>
-          <button class='chip diff' data-diff='hard'>Hard</button>
-        </div>
-      </div>
-
-      <div class='menu-row'>
-        <button id='btn-start-game' class='menu-btn'>Start Game</button>
-      </div>
-      <div class='menu-row'>
-        <button id='btn-leave-game' class='menu-btn secondary'>Leave</button>
-      </div>
-    </div>
-  </div>
-
-  <div id='game-wrapper'>
-    <div id='game-container'></div>
-  </div>
-
-  <!-- Loading overlay (shown until Phaser preload completes) -->
-  <div id='loading-overlay' class='loading-overlay'>
-    <div class='loading-panel'>
-      <div class='loading-title'>Loading…</div>
-      <div id='loading-sub' class='loading-sub'>資源載入中</div>
-      <div class='loading-bar'><div id='loading-bar-inner' class='loading-bar-inner'></div></div>
-    </div>
-  </div>
-
-  <!-- Touch controls overlay (HTML; works even when canvas is letterboxed) -->
-  <div id='touch-overlay' class='touch-overlay hidden'>
-    <div id='touch-debug' class='touch-debug hidden'></div>
-    <div id='touch-joy' class='touch-joy'>
-      <div class='touch-joy-knob'></div>
-    </div>
-    <button id='touch-bomb' class='touch-bomb'>💣</button>
-  </div>
-
-  <script>
-    // HTML Menu overlay controller (more reliable on mobile than Phaser buttons)
+    window.addEventListener('load', initAuthOverlay);</script><script src="bundle.225ad21629fc390eeb8c.js"></script></head><body><div id="auth-overlay" class="minimized"><div class="auth-row" style="margin-top:0"><div id="auth-status" style="flex:1">載入中…</div><button id="audio-toggle" title="靜音/取消靜音">🔊</button> <button id="auth-toggle" title="顯示/收合">帳號</button></div><div id="auth-body"><div class="auth-row"><div id="google-render"></div><button id="google-btn">Google 登入</button> <button id="auth-logout" style="display:none">登出</button> <a href="/leaderboard" target="_blank" style="display:inline-block;color:#fff;text-decoration:underline">排行榜</a></div><div class="auth-row"><input id="auth-name" placeholder="自訂名稱 (1..24)" maxlength="24"/> <button id="auth-save-name" style="display:none">儲存名稱</button></div><div class="auth-row"><div id="avatar-preview" class="avatar-preview" title="預覽（示意）"><div class="av-layer av-base" style="background-image:url(/images/game/cosmetics/base.png?v=20260206_14)"></div></div><select id="avatar-character"><option value="">角色：預設</option><option value="char_1">粉兔（開心）</option><option value="char_2">粉兔（哭哭）</option><option value="char_3">黃兔（開心）</option><option value="char_4">黃兔（哭哭）</option><option value="char_5">藍兔（開心）</option><option value="char_6">藍兔（哭哭）</option><option value="char_7">薄荷兔（開心）</option><option value="char_8">薄荷兔（哭哭）</option></select> <select id="avatar-hair" style="display:none"></select> <select id="avatar-outfit" style="display:none"></select> <select id="avatar-hat" style="display:none"></select> <select id="avatar-face" style="display:none"></select> <select id="avatar-pattern" style="display:none"></select> <button id="avatar-save" style="display:none">儲存角色</button></div></div></div><div id="menu-overlay" class="menu-overlay hidden"><div class="menu-panel"><div class="menu-title">Main Menu</div><button id="btn-new-game" class="menu-btn">New Game</button><div class="menu-row"><a class="menu-btn secondary" href="/leaderboard" target="_blank" style="display:block;text-align:center;line-height:1.2;text-decoration:none">Leaderboard</a></div><div id="map-picker" class="hidden"><div class="menu-title">Select Map</div><div class="menu-row"><div class="menu-subtitle">Mode</div><div class="inline-controls"><button class="chip mode active" data-mode="classic">Classic</button> <button class="chip mode" data-mode="horde">Horde</button></div></div><div class="map-grid"><button class="map-btn" data-map="hot_map">Hot</button> <button class="map-btn" data-map="cold_map">Cold</button> <button class="map-btn" data-map="arena_map">Arena</button> <button class="map-btn" data-map="open_map">Open</button> <button class="map-btn" data-map="rune_lab">Rune Lab</button> <button class="map-btn" data-map="mirror_temple">Mirror</button> <button class="map-btn" data-map="trap_garden">Trap</button></div><div class="menu-row"><button id="btn-map-back" class="menu-btn secondary">Back</button></div></div></div></div><div id="pending-overlay" class="menu-overlay hidden"><div class="menu-panel"><div id="pending-title" class="menu-title">Pending Game</div><div class="menu-row"><div class="menu-subtitle">Mode</div><div id="pending-mode" class="chip label">Classic</div></div><div id="ai-row-count" class="menu-row"><div class="menu-subtitle">AI 數量</div><div class="inline-controls"><button id="ai-minus" class="chip">-</button><div id="ai-count" class="chip label">3</div><button id="ai-plus" class="chip">+</button></div></div><div id="ai-row-diff" class="menu-row"><div class="menu-subtitle">AI 難度</div><div class="inline-controls"><button class="chip diff" data-diff="easy">Easy</button> <button class="chip diff active" data-diff="normal">Normal</button> <button class="chip diff" data-diff="hard">Hard</button></div></div><div class="menu-row"><button id="btn-start-game" class="menu-btn">Start Game</button></div><div class="menu-row"><button id="btn-leave-game" class="menu-btn secondary">Leave</button></div></div></div><div id="game-wrapper"><div id="game-container"></div></div><div id="loading-overlay" class="loading-overlay"><div class="loading-panel"><div class="loading-title">Loading…</div><div id="loading-sub" class="loading-sub">資源載入中</div><div class="loading-bar"><div id="loading-bar-inner" class="loading-bar-inner"></div></div></div></div><div id="touch-overlay" class="touch-overlay hidden"><div id="touch-debug" class="touch-debug hidden"></div><div id="touch-joy" class="touch-joy"><div class="touch-joy-knob"></div></div><button id="touch-bomb" class="touch-bomb">💣</button></div><script>// HTML Menu overlay controller (more reliable on mobile than Phaser buttons)
     (function(){
       const menu = document.getElementById('menu-overlay');
       const mapPicker = document.getElementById('map-picker');
@@ -473,11 +313,7 @@
       // Do NOT auto-show menu before Phaser finishes preloading.
       // Menu will be shown by Phaser Menu state when ready.
       hideMenu();
-    })();
-  </script>
-
-  <script>
-    // Touch overlay controller
+    })();</script><script>// Touch overlay controller
     (function(){
       const overlay = document.getElementById('touch-overlay');
       const joy = document.getElementById('touch-joy');
@@ -627,11 +463,7 @@
       }
 
       window.UK01Touch = { show, hide, debugState };
-    })();
-  </script>
-
-  <script>
-    // Pending Game overlay controller (AI count/difficulty + start)
+    })();</script><script>// Pending Game overlay controller (AI count/difficulty + start)
     (function(){
       const pending = document.getElementById('pending-overlay');
       const titleEl = document.getElementById('pending-title');
@@ -766,7 +598,4 @@
       // init UI
       setCount(aiCount);
       setDiff(aiDiff);
-    })();
-  </script>
-</body>
-</html>
+    })();</script></body></html>

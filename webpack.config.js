@@ -1,4 +1,7 @@
-const path = require('path')
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+const isProd = process.env.NODE_ENV === 'production';
 
 const config = {
   devtool: 'source-map',
@@ -6,12 +9,14 @@ const config = {
   entry: './client/js/app.js',
 
   resolve: {
-    extensions: ['.js']
+    extensions: ['.js'],
   },
 
   output: {
     path: path.join(__dirname, 'client'),
-    filename: 'bundle.js'
+    // Use contenthash for long-term caching in prod. Keep stable name in dev.
+    filename: isProd ? 'bundle.[contenthash].js' : 'bundle.js',
+    clean: false,
   },
 
   module: {
@@ -19,10 +24,21 @@ const config = {
       {
         test: /.js$/,
         loader: 'babel-loader',
-        exclude: /node_modules/
-      }
-    ]
-  }
+        exclude: /node_modules/,
+      },
+    ],
+  },
+
+  plugins: [
+    // Generate client/index.html with the correct hashed bundle filename injected.
+    new HtmlWebpackPlugin({
+      template: path.join(__dirname, 'client', 'index.html'),
+      filename: 'index.html',
+      inject: 'head',
+      scriptLoading: 'blocking',
+    }),
+  ],
 };
 
 module.exports = config;
+

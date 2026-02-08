@@ -40,6 +40,19 @@ app.get('/api/version', (req, res) => {
   res.json(__version);
 });
 
+// Lightweight health check for uptime/monitoring.
+app.get('/healthz', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify({
+    ok: true,
+    commit: __version.commit,
+    env: __version.env,
+    node: __version.node,
+    uptimeSec: Math.round(process.uptime()),
+    ts: new Date().toISOString(),
+  }));
+});
+
 // --- Auth / config APIs ---
 app.get('/api/config', (req, res) => {
   res.json({ googleClientId: Auth.getGoogleClientId() });
@@ -338,14 +351,24 @@ function setStaticCacheHeaders(res, filePath) {
     const p = (filePath || '').toString();
     const base = path.basename(p);
 
-    // Never aggressively cache HTML entrypoints or main bundles (filenames are not content-hashed)
-    if (base === 'index.html' || base === 'bundle.js' || base === 'bundle.js.map') {
+    // Never aggressively cache HTML entrypoints (clients should revalidate)
+    if (base === 'index.html') {
       res.setHeader('Cache-Control', 'no-cache');
       return;
     }
 
-    // Everything else under /client can be cached longer
-    // (images, css, libs). If you keep filenames stable, consider adding ?v=... on the URL.
+    // Main JS bundle: if content-hashed, safe to cache forever; otherwise revalidate.
+    if (base === 'bundle.js' || base === 'bundle.js.map') {
+      res.setHeader('Cache-Control', 'no-cache');
+      return;
+    }
+
+    if (/^bundle\.[a-f0-9]{8,}\.js(\.map)?$/i.test(base)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return;
+    }
+
+    // Everything else under /client can be cached longer (images, css, libs).
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   } catch (_) {
     // no-op

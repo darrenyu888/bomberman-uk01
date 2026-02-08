@@ -89,7 +89,18 @@ class Play extends Phaser.State {
 
     this.map.addTilesetImage(TILESET);
 
+    // Some maps may have different layer names. Prefer configured LAYER, but fall back to the first layer.
     this.blockLayer = this.map.createLayer(LAYER);
+    if (!this.blockLayer) {
+      try { console.warn('createLayer failed for', LAYER, 'falling back to layer 0'); } catch (_) {}
+      this.blockLayer = this.map.createLayer(0);
+    }
+
+    // If still missing, abort early to avoid hard crash.
+    if (!this.blockLayer) {
+      throw new Error('Tilemap layer not found: ' + String(LAYER));
+    }
+
     this.blockLayer.resizeWorld();
 
     this.baseCollisionTiles = (this.blockLayer.layer.properties.collisionTiles || []).slice();

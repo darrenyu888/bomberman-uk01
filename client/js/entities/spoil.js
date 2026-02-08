@@ -1,4 +1,4 @@
-import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, SPOIL_LIFE, SPOIL_PASSWALL, SPOIL_REVERSE, SPOIL_BOMB_UP, SPOIL_BOMB_PASS, SPOIL_SLOW, SPOIL_CONFUSE, SPOIL_MINE, TILE_SIZE } from '../utils/constants';
+import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, SPOIL_LIFE, SPOIL_PASSWALL, SPOIL_REVERSE, SPOIL_BOMB_UP, SPOIL_BOMB_PASS, SPOIL_SLOW, SPOIL_CONFUSE, SPOIL_MINE, SPOIL_THROW, SPOIL_MAGNET, TILE_SIZE } from '../utils/constants';
 
 export default class Spoil extends Phaser.Sprite {
 
@@ -24,6 +24,8 @@ export default class Spoil extends Phaser.Sprite {
     if (spoil.spoil_type === SPOIL_SLOW) frame = 0;
     if (spoil.spoil_type === SPOIL_CONFUSE) frame = 2;
     if (spoil.spoil_type === SPOIL_MINE) frame = 5;
+    if (spoil.spoil_type === SPOIL_THROW) frame = 5;
+    if (spoil.spoil_type === SPOIL_MAGNET) frame = 4;
 
     super(game, (spoil.col * TILE_SIZE), (spoil.row * TILE_SIZE), 'spoil_tileset', frame);
 
@@ -105,6 +107,24 @@ export default class Spoil extends Phaser.Sprite {
       this.tint = 0xffaa55;
       try {
         const t = this.game.add.text(8, 6, 'M', { font: '16px Arial', fill: '#000000', stroke: '#ffffff', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // THROW: show "T"
+    if (spoil.spoil_type === SPOIL_THROW) {
+      this.tint = 0xb36bff;
+      try {
+        const t = this.game.add.text(10, 6, 'T', { font: '16px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // MAGNET: show "🧲" (fallback to 'MG' if tofu)
+    if (spoil.spoil_type === SPOIL_MAGNET) {
+      this.tint = 0x66ccff;
+      try {
+        const t = this.game.add.text(3, 6, 'MG', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
         this.addChild(t);
       } catch (_) {}
     }

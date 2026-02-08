@@ -27,6 +27,8 @@ const {
   SLOW,
   CONFUSE,
   MINE,
+  THROW,
+  MAGNET,
 } = require('../constants');
 
 class Player {
@@ -70,6 +72,10 @@ class Player {
 
     // Ammo
     this.mineAmmo = 0;
+
+    // Abilities
+    this.hasThrow = false;
+    this.magnet_until = 0;
 
     // last known position (pixels + grid), updated by server on 'update player position'
     this.position = { x: spawn.x, y: spawn.y, col: spawnOnGrid.col, row: spawnOnGrid.row, ts: Date.now() };
@@ -164,6 +170,16 @@ class Player {
 
     if (spoil_type === MINE) {
       this.mineAmmo = Math.min(5, (this.mineAmmo || 0) + 1);
+      return;
+    }
+
+    if (spoil_type === THROW) {
+      this.hasThrow = true;
+      return;
+    }
+
+    if (spoil_type === MAGNET) {
+      this.magnet_until = Date.now() + 10000; // 10s
       return;
     }
   }

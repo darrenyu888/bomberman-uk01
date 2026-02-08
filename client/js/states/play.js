@@ -95,6 +95,7 @@ class Play extends Phaser.State {
     this.game.physics.arcade.overlap(this.player, this.blasts, this.onPlayerVsBlast, null, this);
 
     this.handleSpecialTiles();
+    this.handleMagnet();
   }
 
   createMap() {
@@ -656,6 +657,29 @@ class Play extends Phaser.State {
           }
         }
       }
+    }
+  }
+
+  handleMagnet() {
+    if (!this.player || !this.spoils) return;
+    if (!(this.player.isMagnetOn && this.player.isMagnetOn())) return;
+
+    const px = this.player.x;
+    const py = this.player.y;
+    const radius = 220;
+
+    for (const s of (this.spoils.children || [])) {
+      if (!s || !s.alive) continue;
+      const dx = px - s.x;
+      const dy = py - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      if (dist > radius) continue;
+
+      const pull = (radius - dist) / radius;
+      s.x += (dx / dist) * (1.4 + 2.8 * pull);
+      s.y += (dy / dist) * (1.4 + 2.8 * pull);
+
+      try { if (s.body) s.body.reset(s.x, s.y); } catch (_) {}
     }
   }
 

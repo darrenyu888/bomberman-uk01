@@ -390,6 +390,26 @@ var Play = {
       // Apply blast to server-side bots (they don't have a client to report death)
       Bots.applyBlastToBots({ game: current_game, blastedCells, killerId: bomb.owner_id });
 
+      // Chain-detonate mines hit by the blast
+      try {
+        const danger2 = new Set((blastedCells || []).map(c => `${c.col},${c.row}`));
+        for (const mb of (current_game.bombs && current_game.bombs.values ? current_game.bombs.values() : [])) {
+          if (!mb || !mb.passable || mb.kind !== 'mine') continue;
+          if (!danger2.has(`${mb.col},${mb.row}`)) continue;
+          if (mb._triggered) continue;
+          mb._triggered = true;
+          setTimeout(() => {
+            try {
+              const still = current_game.findBomb(mb.id);
+              if (!still) return;
+              let cells2 = still.detonate();
+              try { current_game.deleteBomb(still.id); } catch (_) {}
+              serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: still.id, blastedCells: cells2 });
+            } catch (_) {}
+          }, 220);
+        }
+      } catch (_) {}
+
       // Also apply blast to humans server-side to avoid client-side mismatch / false positives
       try {
         const danger = current_game._lastBlastDanger || new Set();
@@ -551,6 +571,96 @@ var Play = {
         mine: !!bomb.passable,
       });
     }
+  },
+
+  throwBomb: function({ dir, range }) {
+    let game_id = this.socket_game_id;
+    if (!game_id) return;
+
+    let current_game = runningGames.get(game_id);
+    if (!current_game) return;
+
+    let current_player = current_game.players[this.id];
+    if (!current_player || !current_player.isAlive) return;
+    if (!current_player.hasThrow) return;
+
+    // Enforce max simultaneous bombs
+    try {
+      const maxB = Math.max(1, Math.min(5, current_player.maxBombs || 1));
+      const activeOwned = [...(current_game.bombs && current_game.bombs.values ? current_game.bombs.values() : [])].filter(b => b && b.owner_id === this.id).length;
+      if (activeOwned >= maxB) return;
+    } catch (_) {}
+
+    const dirs = {
+      left:  { dc: -1, dr: 0 },
+      right: { dc: 1,  dr: 0 },
+      up:    { dc: 0,  dr: -1 },
+      down:  { dc: 0,  dr: 1 },
+    };
+    const d = dirs[(dir || '').toString()];
+    if (!d) return;
+
+    const pos = current_player.position || current_player.spawnOnGrid || { col: 1, row: 1 };
+    const startCol = (typeof pos.col === 'number') ? pos.col : Math.floor((pos.x || 0) / TILE_SIZE);
+    const startRow = (typeof pos.row === 'number') ? pos.row : Math.floor((pos.y || 0) / TILE_SIZE);
+
+    const maxRange = Math.max(1, Math.min(4, Number(range) || 3));
+
+    let targetCol = startCol;
+    let targetRow = startRow;
+
+    for (let i = 1; i <= maxRange; i++) {
+      const c = startCol + d.dc * i;
+      const r = startRow + d.dr * i;
+      if (!current_game.shadow_map || r < 0 || c < 0 || r >= current_game.shadow_map.length || c >= current_game.shadow_map[0].length) break;
+      if (current_game.getMapCell(r, c) !== EMPTY_CELL) break;
+      if (current_game.findBombAt(r, c)) break;
+      targetCol = c;
+      targetRow = r;
+    }
+
+    // If can't move, drop at feet as normal.
+    if (targetCol === startCol && targetRow === startRow) {
+      Play.createBomb.call(this, { col: startCol, row: startRow });
+      return;
+    }
+
+    const bomb = current_game.addBomb({ col: targetCol, row: targetRow, power: current_player.power, owner_id: this.id, kind: 'throw', passable: false });
+    if (!bomb) return;
+    bomb.created_at = Date.now();
+
+    // detonate normally
+    const detonateAndBroadcast = (b) => {
+      if (!b) return;
+      let blastedCells = b.detonate();
+      try { current_game.deleteBomb(b.id); } catch (_) {}
+
+      // chain-detonate mines if they are in blast
+      try {
+        const danger = new Set((blastedCells || []).map(c => `${c.col},${c.row}`));
+        for (const mb of (current_game.bombs && current_game.bombs.values ? current_game.bombs.values() : [])) {
+          if (!mb || !mb.passable || mb.kind !== 'mine') continue;
+          if (!danger.has(`${mb.col},${mb.row}`)) continue;
+          if (mb._triggered) continue;
+          mb._triggered = true;
+          setTimeout(() => {
+            try {
+              const still = current_game.findBomb(mb.id);
+              if (!still) return;
+              let cells2 = still.detonate();
+              try { current_game.deleteBomb(still.id); } catch (_) {}
+              serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: still.id, blastedCells: cells2 });
+            } catch (_) {}
+          }, 220);
+        }
+      } catch (_) {}
+
+      serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: b.id, blastedCells });
+    };
+
+    bomb._timer = setTimeout(() => detonateAndBroadcast(bomb), bomb.explosion_time);
+
+    serverSocket.sockets.to(game_id).emit('show bomb', { bomb_id: bomb.id, col: bomb.col, row: bomb.row, owner_id: bomb.owner_id, kind: 'throw', power: bomb.power, kicked: false });
   },
 
   kickBomb: function({ bomb_id, dir }) {

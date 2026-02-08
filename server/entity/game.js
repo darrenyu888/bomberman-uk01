@@ -58,6 +58,8 @@ class Game {
       { type: 13, weight: 6 }, // Slow
       { type: 14, weight: 6 }, // Confuse
       { type: 15, weight: 6 }, // Mine
+      { type: 16, weight: 5 }, // Throw
+      { type: 17, weight: 5 }, // Magnet
     ];
 
     // Limit active curse effects globally (rough safety valve)

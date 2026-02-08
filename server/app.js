@@ -422,6 +422,7 @@ io.on('connection', function(client) {
 
   client.on('update player position', Play.updatePlayerPosition);
   client.on('create bomb', Play.createBomb);
+  client.on('throw bomb', Play.throwBomb);
   client.on('kick bomb', Play.kickBomb);
   client.on('pick up spoil', Play.onPickUpSpoil);
 

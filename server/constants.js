@@ -21,6 +21,8 @@ const BOMB_PASS = 12; // walk through bombs
 const SLOW = 13; // slow movement (temporary)
 const CONFUSE = 14; // swap left/right, up/down (temporary)
 const MINE = 15; // mine ammo (+1)
+const THROW = 16; // enable throwing bombs
+const MAGNET = 17; // attract nearby spoils (temporary)
 
 const SHIELD_DURATION_MS = 3000;
 const GHOST_DURATION_MS = 15000;
@@ -81,6 +83,8 @@ module.exports = {
   SLOW,
   CONFUSE,
   MINE,
+  THROW,
+  MAGNET,
   DISEASE_TYPES,
   SHIELD_DURATION_MS,
   GHOST_DURATION_MS,

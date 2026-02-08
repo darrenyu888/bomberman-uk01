@@ -1,7 +1,7 @@
 import {
   PING, TILE_SIZE, MAX_SPEED, STEP_SPEED, INITIAL_SPEED, SPEED, POWER, DELAY,
   MIN_DELAY, STEP_DELAY, INITIAL_DELAY, INITIAL_POWER, STEP_POWER,
-  SHIELD, REMOTE, KICK, GHOST, LIFE, PASSWALL, REVERSE, BOMB_UP, BOMB_PASS, SLOW, CONFUSE, MINE, SPOIL_DISEASE,
+  SHIELD, REMOTE, KICK, GHOST, LIFE, PASSWALL, REVERSE, BOMB_UP, BOMB_PASS, SLOW, CONFUSE, MINE, THROW, MAGNET, SPOIL_DISEASE,
   SHIELD_DURATION_MS, GHOST_DURATION_MS
 } from '../utils/constants';
 
@@ -41,6 +41,9 @@ export default class Player extends Phaser.Sprite {
     this.maxBombs = 1;
     this.hasBombPass = false;
     this.mineAmmo = 0;
+
+    this.hasThrow = false;
+    this.magnetUntil = 0;
 
     this.game.add.existing(this);
     this.game.physics.arcade.enable(this);
@@ -131,17 +134,21 @@ export default class Player extends Phaser.Sprite {
     if (left){
       this.body.velocity.x = -effectiveSpeed;
       animationsArray.push('left')
+      this._lastDir = 'left';
     } else if (right) {
       this.body.velocity.x = effectiveSpeed;
       animationsArray.push('right')
+      this._lastDir = 'right';
     }
 
     if (up) {
       this.body.velocity.y = -effectiveSpeed;
       animationsArray.push('up')
+      this._lastDir = 'up';
     } else if (down) {
       this.body.velocity.y = effectiveSpeed;
       animationsArray.push('down')
+      this._lastDir = 'down';
     }
 
     let currentAnimation = animationsArray[0]
@@ -155,13 +162,40 @@ export default class Player extends Phaser.Sprite {
 
   handleBombs() {
     const bombDown = this.game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) || this.touchBomb;
+    const now = this.game.time.now;
 
-    if (bombDown) {
-      let now = this.game.time.now;
+    if (bombDown && !this._bombHeld) {
+      this._bombHeld = true;
+      this._bombDownAt = now;
+      this._bombLongTriggered = false;
+    }
 
-      if (now > this._lastBombTime) {
+    // Long press: throw bomb
+    if (bombDown && this._bombHeld && !this._bombLongTriggered && this.hasThrow && (now - (this._bombDownAt || 0) > 380)) {
+      this._bombLongTriggered = true;
+      this._lastBombTime = now + this.delay;
+
+      // Determine direction from current input intent
+      const left  = this.touchLeft || (this.leftKey && this.leftKey.isDown) || (this.aKey && this.aKey.isDown);
+      const right = this.touchRight || (this.rightKey && this.rightKey.isDown) || (this.dKey && this.dKey.isDown);
+      const up    = this.touchUp || (this.upKey && this.upKey.isDown) || (this.wKey && this.wKey.isDown);
+      const down  = this.touchDown || (this.downKey && this.downKey.isDown) || (this.sKey && this.sKey.isDown);
+
+      let dir = this._lastDir || 'down';
+      if (left) dir = 'left';
+      else if (right) dir = 'right';
+      else if (up) dir = 'up';
+      else if (down) dir = 'down';
+
+      clientSocket.emit('throw bomb', { dir, range: 3 });
+      return;
+    }
+
+    // On release: place bomb once (short press)
+    if (!bombDown && this._bombHeld) {
+      this._bombHeld = false;
+      if (!this._bombLongTriggered && now > this._lastBombTime) {
         this._lastBombTime = now + this.delay;
-
         clientSocket.emit('create bomb', { col: this.currentCol(), row: this.currentRow() });
       }
     }
@@ -208,6 +242,8 @@ export default class Player extends Phaser.Sprite {
     if ( spoil_type === SLOW ){ this.activateSlow() }
     if ( spoil_type === CONFUSE ){ this.activateConfuse() }
     if ( spoil_type === MINE ){ this.gainMine() }
+    if ( spoil_type === THROW ){ this.enableThrow() }
+    if ( spoil_type === MAGNET ){ this.activateMagnet() }
   }
 
   isShielded() {
@@ -264,6 +300,25 @@ export default class Player extends Phaser.Sprite {
   gainMine() {
     this.mineAmmo = Math.min(5, (this.mineAmmo || 0) + 1);
     if (this.info && this.info.refreshBombs) this.info.refreshBombs();
+  }
+
+  enableThrow() {
+    this.hasThrow = true;
+    try { new SpoilNotification({ game: this.game, asset: 'placeholder_speed', x: this.position.x, y: this.position.y }); } catch (_) {}
+  }
+
+  activateMagnet() {
+    this.magnetUntil = this.game.time.now + 10000;
+    this.tint = 0x66ccff;
+    this.game.time.events.add(10000, () => {
+      if (!this.isShielded() && !this.isGhosted() && !this.isPassWalled() && !this.isDiseased() && !this.isReversed() && !this.isConfused() && !this.isSlowed()) {
+        this.tint = 0xffffff;
+      }
+    });
+  }
+
+  isMagnetOn() {
+    return this.magnetUntil && this.game.time.now < this.magnetUntil;
   }
 
   increaseSpeed(){

@@ -50,6 +50,8 @@ export const SPOIL_BOMB_PASS = 12;
 export const SPOIL_SLOW = 13;
 export const SPOIL_CONFUSE = 14;
 export const SPOIL_MINE = 15;
+export const SPOIL_THROW = 16;
+export const SPOIL_MAGNET = 17;
 
 // Back-compat constants used by legacy client code
 export const SPEED = SPOIL_SPEED;
@@ -67,6 +69,8 @@ export const BOMB_PASS = SPOIL_BOMB_PASS;
 export const SLOW = SPOIL_SLOW;
 export const CONFUSE = SPOIL_CONFUSE;
 export const MINE = SPOIL_MINE;
+export const THROW = SPOIL_THROW;
+export const MAGNET = SPOIL_MAGNET;
 
 // Timed powerups
 export const SHIELD_DURATION_MS = 3000;

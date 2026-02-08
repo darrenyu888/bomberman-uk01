@@ -16,6 +16,8 @@ body {
   overflow: hidden;
   -webkit-text-size-adjust: 100%;
   touch-action: none; /* prevent scroll/zoom gestures from stealing input */
+  /* Ensure Traditional Chinese + emoji render correctly across platforms */
+  font-family: Arial, "Noto Sans TC", "Microsoft JhengHei", system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
 }
 
 .touch-overlay {
@@ -115,7 +117,8 @@ body {
   color: #fff;
   padding: 8px 10px;
   border-radius: 10px;
-  font-family: Arial, sans-serif;
+  /* include emoji-capable fonts for 🔊/🔇 etc. */
+  font-family: Arial, "Noto Sans TC", "Microsoft JhengHei", system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
   font-size: 14px;
   max-width: 340px;
   backdrop-filter: blur(4px);

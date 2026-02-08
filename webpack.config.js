@@ -32,7 +32,7 @@ const config = {
   plugins: [
     // Generate client/index.html with the correct hashed bundle filename injected.
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'client', 'index.html'),
+      template: path.join(__dirname, 'client', 'index.template.html'),
       filename: 'index.html',
       inject: 'head',
       scriptLoading: 'blocking',

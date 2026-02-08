@@ -42,15 +42,26 @@ class Game {
 
     // Spoil generation weights
     this.spoilWeights = [
-      { type: 0, weight: 35 }, // Speed
-      { type: 1, weight: 35 }, // Power
-      { type: 2, weight: 15 }, // Delay
+      { type: 0, weight: 28 }, // Speed
+      { type: 1, weight: 30 }, // Power
+      { type: 2, weight: 12 }, // Delay
       { type: 3, weight: 5 },  // Shield
       { type: 4, weight: 5 },  // Remote
-      { type: 5, weight: 5 },  // Kick
+      { type: 5, weight: 6 },  // Kick
       { type: 6, weight: 3 },  // Ghost
       { type: 7, weight: 8 },  // Disease (Skull)
+      { type: 8, weight: 2 },  // Life
+      { type: 9, weight: 4 },  // PassWall
+      { type: 10, weight: 4 }, // Reverse
+      { type: 11, weight: 8 }, // BombUp
+      { type: 12, weight: 6 }, // BombPass
+      { type: 13, weight: 6 }, // Slow
+      { type: 14, weight: 6 }, // Confuse
+      { type: 15, weight: 6 }, // Mine
     ];
+
+    // Limit active curse effects globally (rough safety valve)
+    this.curseLimit = 5;
   }
 
   addPlayer(id) {
@@ -126,7 +137,7 @@ class Game {
     return mapMatrix;
   }
 
-  addBomb({ col, row, power, owner_id }) {
+  addBomb({ col, row, power, owner_id, kind, passable }) {
     // disallow stacking bombs
     for (const b of this.bombs.values()) {
       if (b && b.col === col && b.row === row) return false;
@@ -135,7 +146,7 @@ class Game {
     // only allow bombs on empty cells
     if (this.getMapCell(row, col) !== EMPTY_CELL) return false;
 
-    let bomb = new Bomb({ game: this, col: col, row: row, power: power, owner_id });
+    let bomb = new Bomb({ game: this, col: col, row: row, power: power, owner_id, kind, passable });
     if ( this.bombs.get(bomb.id) ) {
       return false
     }

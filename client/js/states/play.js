@@ -76,7 +76,20 @@ class Play extends Phaser.State {
 
     this.game.physics.arcade.collide(this.player, this.blockLayer);
     this.game.physics.arcade.collide(this.player, this.enemies);
-    this.game.physics.arcade.collide(this.player, this.bombs, this.onPlayerVsBomb, null, this);
+    // Bomb collision: allow BombPass and mines to be passable.
+    this.game.physics.arcade.collide(
+      this.player,
+      this.bombs,
+      this.onPlayerVsBomb,
+      (player, bomb) => {
+        try {
+          if (player && player.hasBombPass) return false;
+          if (bomb && bomb.kind === 'mine') return false;
+        } catch (_) {}
+        return true;
+      },
+      this
+    );
 
     this.game.physics.arcade.overlap(this.player, this.spoils, this.onPlayerVsSpoil, null, this);
     this.game.physics.arcade.overlap(this.player, this.blasts, this.onPlayerVsBlast, null, this);

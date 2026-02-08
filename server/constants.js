@@ -15,6 +15,13 @@ const LIFE = 8; // +1 life
 const PASSWALL = 9; // pass through destructible blocks (temporary)
 const REVERSE = 10; // reverse controls (temporary)
 
+// Classic add-ons
+const BOMB_UP = 11; // increase simultaneous bombs
+const BOMB_PASS = 12; // walk through bombs
+const SLOW = 13; // slow movement (temporary)
+const CONFUSE = 14; // swap left/right, up/down (temporary)
+const MINE = 15; // mine ammo (+1)
+
 const SHIELD_DURATION_MS = 3000;
 const GHOST_DURATION_MS = 15000;
 const DISEASE_DURATION_MS = 20000; // Disease lasts 20s
@@ -69,6 +76,11 @@ module.exports = {
   LIFE,
   PASSWALL,
   REVERSE,
+  BOMB_UP,
+  BOMB_PASS,
+  SLOW,
+  CONFUSE,
+  MINE,
   DISEASE_TYPES,
   SHIELD_DURATION_MS,
   GHOST_DURATION_MS,

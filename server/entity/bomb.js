@@ -6,12 +6,14 @@ const { v4: uuidv4 } = require('uuid');
 
 class Bomb {
 
-  constructor({ game, col, row, power, owner_id }) {
+  constructor({ game, col, row, power, owner_id, kind, passable }) {
     this.id = uuidv4();
 
     this.game = game;
     this.power = power
     this.owner_id = owner_id
+    this.kind = kind || 'normal'
+    this.passable = !!passable
     this.explosion_time = EXPLOSION_TIME
 
     this.col = col
@@ -78,7 +80,7 @@ class Bomb {
     var randomNumber = Math.floor(Math.random() * 100)
 
     if (randomNumber < SPOIL_CHANCE) {
-      let spoil = new Spoil(row, col, this.game.spoilWeights)
+      let spoil = new Spoil(row, col, this.game.spoilWeights, this.game)
       this.game.addSpoil(spoil)
       return spoil
     }

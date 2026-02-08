@@ -1,7 +1,7 @@
 import {
   PING, TILE_SIZE, MAX_SPEED, STEP_SPEED, INITIAL_SPEED, SPEED, POWER, DELAY,
   MIN_DELAY, STEP_DELAY, INITIAL_DELAY, INITIAL_POWER, STEP_POWER,
-  SHIELD, REMOTE, KICK, GHOST, LIFE, PASSWALL, REVERSE, SPOIL_DISEASE,
+  SHIELD, REMOTE, KICK, GHOST, LIFE, PASSWALL, REVERSE, BOMB_UP, BOMB_PASS, SLOW, CONFUSE, MINE, SPOIL_DISEASE,
   SHIELD_DURATION_MS, GHOST_DURATION_MS
 } from '../utils/constants';
 
@@ -32,8 +32,15 @@ export default class Player extends Phaser.Sprite {
     this.diseaseUntil = 0; // Client-side tracking
     this.passwallUntil = 0;
     this.reverseUntil = 0;
+    this.slowUntil = 0;
+    this.confuseUntil = 0;
+
     this.lives = 3;
     this.maxLives = 5;
+
+    this.maxBombs = 1;
+    this.hasBombPass = false;
+    this.mineAmmo = 0;
 
     this.game.add.existing(this);
     this.game.physics.arcade.enable(this);
@@ -96,7 +103,8 @@ export default class Player extends Phaser.Sprite {
     this.body.velocity.set(0);
     let animationsArray = []
 
-    const effectiveSpeed = this.speed * (this.tileSpeedMultiplier || 1.0);
+    let effectiveSpeed = this.speed * (this.tileSpeedMultiplier || 1.0);
+    if (this.isSlowed && this.isSlowed()) effectiveSpeed *= 0.55;
 
     let left  = this.leftKey.isDown  || (this.aKey && this.aKey.isDown) || this.touchLeft;
     let right = this.rightKey.isDown || (this.dKey && this.dKey.isDown) || this.touchRight;
@@ -107,6 +115,17 @@ export default class Player extends Phaser.Sprite {
     if (this.isReversed && this.isReversed()) {
       const l = left, r = right, u = up, d = down;
       left = r; right = l; up = d; down = u;
+    }
+
+    // Confuse: swap left/right and up/down (classic-ish)
+    if (this.isConfused && this.isConfused()) {
+      const l = left, r = right, u = up, d = down;
+      left = r; right = l; up = d; down = u;
+    }
+
+    // Slow: reduce effective speed
+    if (this.isSlowed && this.isSlowed()) {
+      // handled via multiplier below
     }
 
     if (left){
@@ -183,6 +202,12 @@ export default class Player extends Phaser.Sprite {
     if ( spoil_type === LIFE ){ this.gainLife() }
     if ( spoil_type === PASSWALL ){ this.activatePassWall() }
     if ( spoil_type === REVERSE ){ this.activateReverse() }
+
+    if ( spoil_type === BOMB_UP ){ this.increaseBombCapacity() }
+    if ( spoil_type === BOMB_PASS ){ this.enableBombPass() }
+    if ( spoil_type === SLOW ){ this.activateSlow() }
+    if ( spoil_type === CONFUSE ){ this.activateConfuse() }
+    if ( spoil_type === MINE ){ this.gainMine() }
   }
 
   isShielded() {
@@ -195,6 +220,50 @@ export default class Player extends Phaser.Sprite {
 
   isDiseased() {
     return this.diseaseUntil && this.game.time.now < this.diseaseUntil;
+  }
+
+  isSlowed() {
+    return this.slowUntil && this.game.time.now < this.slowUntil;
+  }
+
+  isConfused() {
+    return this.confuseUntil && this.game.time.now < this.confuseUntil;
+  }
+
+  increaseBombCapacity() {
+    this.maxBombs = Math.min(5, (this.maxBombs || 1) + 1);
+    if (this.info && this.info.refreshBombs) this.info.refreshBombs();
+  }
+
+  enableBombPass() {
+    this.hasBombPass = true;
+    // Visual hint
+    this.game.time.events.add(250, () => { try { this.tint = 0x99ddff; } catch (_) {} });
+  }
+
+  activateSlow() {
+    this.slowUntil = this.game.time.now + 9000;
+    this.tint = 0x88aaff;
+    this.game.time.events.add(9000, () => {
+      if (!this.isShielded() && !this.isGhosted() && !this.isPassWalled() && !this.isDiseased() && !this.isReversed() && !this.isConfused()) {
+        this.tint = 0xffffff;
+      }
+    });
+  }
+
+  activateConfuse() {
+    this.confuseUntil = this.game.time.now + 8000;
+    this.tint = 0xffffff;
+    this.game.time.events.add(8000, () => {
+      if (!this.isShielded() && !this.isGhosted() && !this.isPassWalled() && !this.isDiseased() && !this.isReversed() && !this.isSlowed()) {
+        this.tint = 0xffffff;
+      }
+    });
+  }
+
+  gainMine() {
+    this.mineAmmo = Math.min(5, (this.mineAmmo || 0) + 1);
+    if (this.info && this.info.refreshBombs) this.info.refreshBombs();
   }
 
   increaseSpeed(){

@@ -10,6 +10,7 @@ export default class Bomb extends Phaser.Sprite {
 
     // Visual variants by kind (no extra spritesheet needed)
     this.kind = (meta && meta.kind) ? meta.kind : 'normal';
+    if (meta && meta.mine) this.kind = 'mine';
     this.power = (meta && typeof meta.power === 'number') ? meta.power : null;
 
     // Base tint
@@ -19,6 +20,8 @@ export default class Bomb extends Phaser.Sprite {
       this.tint = 0x66ccff;
     } else if (this.kind === 'disease') {
       this.tint = 0x55ff55;
+    } else if (this.kind === 'mine') {
+      this.tint = 0xffaa55;
     }
 
     // High-power bombs: slightly larger + faster pulse
@@ -44,6 +47,7 @@ export default class Bomb extends Phaser.Sprite {
       if (this.kind === 'remote') mk('R', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
       if (this.kind === 'sky') mk('!', { font: '16px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
       if (this.kind === 'disease') mk('☠', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+      if (this.kind === 'mine') mk('M', { font: '14px Arial', fill: '#000000', stroke: '#ffffff', strokeThickness: 3 });
 
       if (this._big) mk('P', { font: '12px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
     } catch (_) {}

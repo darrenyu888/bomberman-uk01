@@ -1,4 +1,4 @@
-import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, SPOIL_LIFE, SPOIL_PASSWALL, SPOIL_REVERSE, TILE_SIZE } from '../utils/constants';
+import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, SPOIL_LIFE, SPOIL_PASSWALL, SPOIL_REVERSE, SPOIL_BOMB_UP, SPOIL_BOMB_PASS, SPOIL_SLOW, SPOIL_CONFUSE, SPOIL_MINE, TILE_SIZE } from '../utils/constants';
 
 export default class Spoil extends Phaser.Sprite {
 
@@ -19,6 +19,11 @@ export default class Spoil extends Phaser.Sprite {
     if (spoil.spoil_type === SPOIL_LIFE) frame = 1;
     if (spoil.spoil_type === SPOIL_PASSWALL) frame = 3;
     if (spoil.spoil_type === SPOIL_REVERSE) frame = 2;
+    if (spoil.spoil_type === SPOIL_BOMB_UP) frame = 1;
+    if (spoil.spoil_type === SPOIL_BOMB_PASS) frame = 4;
+    if (spoil.spoil_type === SPOIL_SLOW) frame = 0;
+    if (spoil.spoil_type === SPOIL_CONFUSE) frame = 2;
+    if (spoil.spoil_type === SPOIL_MINE) frame = 5;
 
     super(game, (spoil.col * TILE_SIZE), (spoil.row * TILE_SIZE), 'spoil_tileset', frame);
 
@@ -55,6 +60,51 @@ export default class Spoil extends Phaser.Sprite {
       this.tint = 0xffbb00;
       try {
         const t = this.game.add.text(10, 6, 'R', { font: '16px Arial', fill: '#000000', stroke: '#ffffff', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // BOMB_UP: show "+B"
+    if (spoil.spoil_type === SPOIL_BOMB_UP) {
+      this.tint = 0xff6bd6;
+      try {
+        const t = this.game.add.text(2, 6, '+B', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // BOMB_PASS: show "BP"
+    if (spoil.spoil_type === SPOIL_BOMB_PASS) {
+      this.tint = 0x66ccff;
+      try {
+        const t = this.game.add.text(2, 6, 'BP', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // SLOW: show "S"
+    if (spoil.spoil_type === SPOIL_SLOW) {
+      this.tint = 0x6aa3ff;
+      try {
+        const t = this.game.add.text(10, 6, 'S', { font: '16px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // CONFUSE: show "?"
+    if (spoil.spoil_type === SPOIL_CONFUSE) {
+      this.tint = 0xffffff;
+      try {
+        const t = this.game.add.text(10, 6, '?', { font: '16px Arial', fill: '#000000', stroke: '#ffffff', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // MINE: show "M"
+    if (spoil.spoil_type === SPOIL_MINE) {
+      this.tint = 0xffaa55;
+      try {
+        const t = this.game.add.text(8, 6, 'M', { font: '16px Arial', fill: '#000000', stroke: '#ffffff', strokeThickness: 3 });
         this.addChild(t);
       } catch (_) {}
     }

@@ -33,6 +33,13 @@ export default class Info {
     lifeIcon.addChild(this.lifeText);
     this.hud.add(lifeIcon);
 
+    // Bomb capacity + mine ammo (compact)
+    let bombIcon = new Phaser.Image(this.game, 425, 2, 'placeholder_time');
+    bombIcon.alpha = 0.6;
+    this.bombText = new Phaser.Text(this.game, 35, 7, this.bombLabel(), this.style);
+    bombIcon.addChild(this.bombText);
+    this.hud.add(bombIcon);
+
     // Ghost powerup indicator (hidden unless active)
     let ghostIcon = new Phaser.Image(this.game, 320, 2, 'ghost_icon');
     ghostIcon.alpha = 0.85;
@@ -55,10 +62,15 @@ export default class Info {
     this.powerText.text = this.powerLabel();
     this.delayText.text = this.delayLabel();
     if (this.lifeText) this.lifeText.text = this.lifeLabel();
+    if (this.bombText) this.bombText.text = this.bombLabel();
   }
 
   refreshLives() {
     if (this.lifeText) this.lifeText.text = this.lifeLabel();
+  }
+
+  refreshBombs() {
+    if (this.bombText) this.bombText.text = this.bombLabel();
   }
 
   showGhost(ghostUntilMs) {
@@ -110,5 +122,11 @@ export default class Info {
 
   lifeLabel() {
     return `x ${this.player.lives || 0}`
+  }
+
+  bombLabel() {
+    const mb = this.player.maxBombs || 1;
+    const mine = this.player.mineAmmo || 0;
+    return `${mb}B ${mine}M`;
   }
 }

@@ -304,13 +304,38 @@ var Play = {
       const p = current_game.players[this.id];
       const x = coordinates.x;
       const y = coordinates.y;
+      const col = Math.floor(x / TILE_SIZE);
+      const row = Math.floor(y / TILE_SIZE);
       p.position = {
         x,
         y,
-        col: Math.floor(x / TILE_SIZE),
-        row: Math.floor(y / TILE_SIZE),
+        col,
+        row,
         ts: Date.now(),
       };
+
+      // Trigger mines when stepping on them (B: small delay then detonate)
+      try {
+        const bomb = current_game.findBombAt(row, col);
+        if (bomb && bomb.passable && (bomb.kind === 'mine')) {
+          // don't trigger your own mine immediately on placement; require a different tick / or different owner
+          if (bomb.owner_id !== this.id) {
+            if (!bomb._triggered) {
+              bomb._triggered = true;
+              setTimeout(() => {
+                try {
+                  // detonate if still present
+                  const still = current_game.findBomb(bomb.id);
+                  if (!still) return;
+                  let blastedCells = still.detonate();
+                  try { current_game.deleteBomb(still.id); } catch (_) {}
+                  serverSocket.sockets.to(current_game.id).emit('detonate bomb', { bomb_id: still.id, blastedCells });
+                } catch (_) {}
+              }, 600);
+            }
+          }
+        }
+      } catch (_) {}
     }
 
     // Keep server-side copy of human positions for smarter bots
@@ -340,7 +365,7 @@ var Play = {
     if (!current_game) return;
 
     let current_player = current_game.players[this.id];
-    if (!current_player) return;
+    if (!current_player || !current_player.isAlive) return;
 
     const detonateAndBroadcast = (bomb) => {
       if (!bomb) return;
@@ -456,6 +481,15 @@ var Play = {
       serverSocket.sockets.to(game_id).emit('detonate bomb', { bomb_id: bomb.id, blastedCells: blastedCells });
     };
 
+    // Enforce max simultaneous bombs (classic)
+    try {
+      const maxB = Math.max(1, Math.min(5, current_player.maxBombs || 1));
+      const activeOwned = [...(current_game.bombs && current_game.bombs.values ? current_game.bombs.values() : [])].filter(b => b && b.owner_id === this.id).length;
+      if (activeOwned >= maxB && !(current_player.hasRemote)) {
+        return;
+      }
+    } catch (_) {}
+
     // Remote powerup: pressing bomb again detonates nearest active owned bomb
     if (current_player.hasRemote) {
       let nearest = null;
@@ -479,30 +513,42 @@ var Play = {
       // else: no active bombs -> fallthrough to place one
     }
 
-    let bomb = current_game.addBomb({ col: col, row: row, power: current_player.power, owner_id: this.id })
+    // Mine: if player has mine ammo, the next bomb becomes a mine (walkable, triggers on step)
+    let bombKind = 'normal';
+    let passable = false;
+    const now = Date.now();
+    const isDiseased = (current_player && current_player.disease_until && now < current_player.disease_until);
+    if (isDiseased) bombKind = 'disease';
+    if (current_player && current_player.hasRemote) bombKind = 'remote';
+
+    if ((current_player.mineAmmo || 0) > 0) {
+      current_player.mineAmmo -= 1;
+      bombKind = 'mine';
+      passable = true;
+    }
+
+    let bomb = current_game.addBomb({ col: col, row: row, power: current_player.power, owner_id: this.id, kind: bombKind, passable })
     if (bomb) {
       bomb.created_at = Date.now();
     }
 
     if ( bomb ){
-      bomb._timer = setTimeout(function() {
-        detonateAndBroadcast(bomb);
-      }, bomb.explosion_time);
-
-      const now = Date.now();
-      const isDiseased = (current_player && current_player.disease_until && now < current_player.disease_until);
-      const kind = (bomb.owner_id === 'sky')
-        ? 'sky'
-        : (isDiseased ? 'disease' : (current_player && current_player.hasRemote ? 'remote' : 'normal'));
+      // Normal bombs auto-detonate
+      if (!bomb.passable) {
+        bomb._timer = setTimeout(function() {
+          detonateAndBroadcast(bomb);
+        }, bomb.explosion_time);
+      }
 
       serverSocket.sockets.to(game_id).emit('show bomb', {
         bomb_id: bomb.id,
         col: bomb.col,
         row: bomb.row,
         owner_id: bomb.owner_id,
-        kind,
+        kind: bomb.kind || bombKind,
         power: bomb.power,
         kicked: false,
+        mine: !!bomb.passable,
       });
     }
   },

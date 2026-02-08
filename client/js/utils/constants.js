@@ -45,6 +45,11 @@ export const SPOIL_DISEASE = 7;
 export const SPOIL_LIFE = 8;
 export const SPOIL_PASSWALL = 9;
 export const SPOIL_REVERSE = 10;
+export const SPOIL_BOMB_UP = 11;
+export const SPOIL_BOMB_PASS = 12;
+export const SPOIL_SLOW = 13;
+export const SPOIL_CONFUSE = 14;
+export const SPOIL_MINE = 15;
 
 // Back-compat constants used by legacy client code
 export const SPEED = SPOIL_SPEED;
@@ -57,6 +62,11 @@ export const GHOST = SPOIL_GHOST;
 export const LIFE = SPOIL_LIFE;
 export const PASSWALL = SPOIL_PASSWALL;
 export const REVERSE = SPOIL_REVERSE;
+export const BOMB_UP = SPOIL_BOMB_UP;
+export const BOMB_PASS = SPOIL_BOMB_PASS;
+export const SLOW = SPOIL_SLOW;
+export const CONFUSE = SPOIL_CONFUSE;
+export const MINE = SPOIL_MINE;
 
 // Timed powerups
 export const SHIELD_DURATION_MS = 3000;

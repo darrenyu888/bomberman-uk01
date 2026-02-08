@@ -22,6 +22,11 @@ const {
   LIFE,
   PASSWALL,
   REVERSE,
+  BOMB_UP,
+  BOMB_PASS,
+  SLOW,
+  CONFUSE,
+  MINE,
 } = require('../constants');
 
 class Player {
@@ -51,9 +56,20 @@ class Player {
     this.lives = 3; // Lives
     this.maxLives = 5;
 
+    // Bomb capacity
+    this.maxBombs = 1;
+
     // Temporary classic effects
     this.passwall_until = 0;
     this.reverse_until = 0;
+    this.slow_until = 0;
+    this.confuse_until = 0;
+
+    // Permanent-ish perks
+    this.hasBombPass = false;
+
+    // Ammo
+    this.mineAmmo = 0;
 
     // last known position (pixels + grid), updated by server on 'update player position'
     this.position = { x: spawn.x, y: spawn.y, col: spawnOnGrid.col, row: spawnOnGrid.row, ts: Date.now() };
@@ -123,6 +139,31 @@ class Player {
 
     if (spoil_type === REVERSE) {
       this.reverse_until = Date.now() + 8000; // 8s
+      return;
+    }
+
+    if (spoil_type === BOMB_UP) {
+      this.maxBombs = Math.min(5, (this.maxBombs || 1) + 1);
+      return;
+    }
+
+    if (spoil_type === BOMB_PASS) {
+      this.hasBombPass = true;
+      return;
+    }
+
+    if (spoil_type === SLOW) {
+      this.slow_until = Date.now() + 9000; // 9s
+      return;
+    }
+
+    if (spoil_type === CONFUSE) {
+      this.confuse_until = Date.now() + 8000; // 8s
+      return;
+    }
+
+    if (spoil_type === MINE) {
+      this.mineAmmo = Math.min(5, (this.mineAmmo || 0) + 1);
       return;
     }
   }

@@ -171,13 +171,21 @@ class Play extends Phaser.State {
 
     this.game.physics.arcade.enable(this.blockLayer);
 
-    // --- Lighting ---
-    this.darkness = this.game.add.sprite(0, 0, 'light_mask');
-    this.darkness.anchor.setTo(0.5);
-    this.darkness.width = 1600;
-    this.darkness.height = 1600;
-    this.darkness.alpha = 0.82;
-    this.darkness.blendMode = Phaser.blendModes.MULTIPLY;
+    // --- Lighting (optional) ---
+    // The darkness overlay can make the screen look like a "black film".
+    // Default: OFF. Enable with URL param ?dark=1
+    this.darkness = null;
+    try {
+      const enableDark = (typeof window !== 'undefined') && window.location && /(?:\?|&)dark=1(?:&|$)/.test(window.location.search || '');
+      if (enableDark) {
+        this.darkness = this.game.add.sprite(0, 0, 'light_mask');
+        this.darkness.anchor.setTo(0.5);
+        this.darkness.width = 1600;
+        this.darkness.height = 1600;
+        this.darkness.alpha = 0.82;
+        this.darkness.blendMode = Phaser.blendModes.MULTIPLY;
+      }
+    } catch (_) {}
   }
 
   createPlayers() {

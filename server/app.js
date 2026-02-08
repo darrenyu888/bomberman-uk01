@@ -315,8 +315,32 @@ app.get('/leaderboard', (req, res) => {
 });
 
 // --- Static ---
-app.use(express.static(path.join(__dirname, '..', 'client')));
-app.use(favicon(path.join(__dirname, '..', 'client', 'favicon.ico')));
+// Cache strategy:
+// - HTML + bundle.js: no-cache (clients should revalidate to avoid stale UI)
+// - versioned assets (images/css/lib): long cache
+const clientRoot = path.join(__dirname, '..', 'client');
+
+function setStaticCacheHeaders(res, filePath) {
+  try {
+    const p = (filePath || '').toString();
+    const base = path.basename(p);
+
+    // Never aggressively cache HTML entrypoints or main bundles (filenames are not content-hashed)
+    if (base === 'index.html' || base === 'bundle.js' || base === 'bundle.js.map') {
+      res.setHeader('Cache-Control', 'no-cache');
+      return;
+    }
+
+    // Everything else under /client can be cached longer
+    // (images, css, libs). If you keep filenames stable, consider adding ?v=... on the URL.
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } catch (_) {
+    // no-op
+  }
+}
+
+app.use(express.static(clientRoot, { setHeaders: setStaticCacheHeaders }));
+app.use(favicon(path.join(clientRoot, 'favicon.ico')));
 
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, 'index'));

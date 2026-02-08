@@ -19,6 +19,9 @@ const {
   SHIELD_DURATION_MS,
   GHOST_DURATION_MS,
   DISEASE_DURATION_MS,
+  LIFE,
+  PASSWALL,
+  REVERSE,
 } = require('../constants');
 
 class Player {
@@ -45,7 +48,12 @@ class Player {
     this.disease_until = 0;
     this.disease_type = -1; // -1: None
 
-    this.lives = 3; // 3 Lives System
+    this.lives = 3; // Lives
+    this.maxLives = 5;
+
+    // Temporary classic effects
+    this.passwall_until = 0;
+    this.reverse_until = 0;
 
     // last known position (pixels + grid), updated by server on 'update player position'
     this.position = { x: spawn.x, y: spawn.y, col: spawnOnGrid.col, row: spawnOnGrid.row, ts: Date.now() };
@@ -96,6 +104,25 @@ class Player {
       // Pick random disease
       const types = Object.values(DISEASE_TYPES);
       this.disease_type = types[Math.floor(Math.random() * types.length)];
+      // If reverse disease chosen, also set reverse_until for client-side effect.
+      if (this.disease_type === DISEASE_TYPES.REVERSE) {
+        this.reverse_until = this.disease_until;
+      }
+      return;
+    }
+
+    if (spoil_type === LIFE) {
+      this.lives = Math.min(this.maxLives || 5, (this.lives || 0) + 1);
+      return;
+    }
+
+    if (spoil_type === PASSWALL) {
+      this.passwall_until = Date.now() + 10000; // 10s
+      return;
+    }
+
+    if (spoil_type === REVERSE) {
+      this.reverse_until = Date.now() + 8000; // 8s
       return;
     }
   }

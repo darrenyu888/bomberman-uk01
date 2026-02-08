@@ -1,4 +1,4 @@
-import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, TILE_SIZE } from '../utils/constants';
+import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, SPOIL_LIFE, SPOIL_PASSWALL, SPOIL_REVERSE, TILE_SIZE } from '../utils/constants';
 
 export default class Spoil extends Phaser.Sprite {
 
@@ -14,24 +14,49 @@ export default class Spoil extends Phaser.Sprite {
     if (spoil.spoil_type === SPOIL_KICK) frame = 5;
     if (spoil.spoil_type === SPOIL_GHOST) frame = 6;
     
-    // For Disease (7), we don't have frame 7 in tileset yet. 
-    // Overlay the SVG icon or assume spritesheet updated.
-    // For now, reuse frame 2 (Delay) but tint it Green/Purple.
-    if (spoil.spoil_type === 7) { // SPOIL_DISEASE
-       frame = 2; 
-    }
+    // For types beyond frame range, reuse an existing frame + overlay a small icon/text.
+    if (spoil.spoil_type === SPOIL_DISEASE) frame = 2;
+    if (spoil.spoil_type === SPOIL_LIFE) frame = 1;
+    if (spoil.spoil_type === SPOIL_PASSWALL) frame = 3;
+    if (spoil.spoil_type === SPOIL_REVERSE) frame = 2;
 
     super(game, (spoil.col * TILE_SIZE), (spoil.row * TILE_SIZE), 'spoil_tileset', frame);
 
-    if (spoil.spoil_type === 7) {
+    if (spoil.spoil_type === SPOIL_DISEASE) {
        this.tint = 0x55ff00; // Toxic Green tint for Disease
-       // Optional: Add skull icon overlay
        try {
          const skull = this.game.add.sprite(0, 0, 'disease_icon');
          skull.width = 35; skull.height = 35;
          skull.anchor.setTo(0,0);
          this.addChild(skull);
        } catch(_) {}
+    }
+
+    // LIFE: simple +1 overlay
+    if (spoil.spoil_type === SPOIL_LIFE) {
+      this.tint = 0xff6bd6;
+      try {
+        const t = this.game.add.text(6, 4, '+1', { font: '16px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // PASSWALL: show "PW" label
+    if (spoil.spoil_type === SPOIL_PASSWALL) {
+      this.tint = 0x00e5ff;
+      try {
+        const t = this.game.add.text(3, 6, 'PW', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
+    }
+
+    // REVERSE: show "R" label
+    if (spoil.spoil_type === SPOIL_REVERSE) {
+      this.tint = 0xffbb00;
+      try {
+        const t = this.game.add.text(10, 6, 'R', { font: '16px Arial', fill: '#000000', stroke: '#ffffff', strokeThickness: 3 });
+        this.addChild(t);
+      } catch (_) {}
     }
 
     this.id = spoil.id

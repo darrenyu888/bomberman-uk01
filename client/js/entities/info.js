@@ -26,6 +26,13 @@ export default class Info {
     delayIcon.addChild(this.delayText)
     this.hud.add(delayIcon);
 
+    // Lives
+    let lifeIcon = new Phaser.Image(this.game, 320, 2, 'placeholder_power');
+    lifeIcon.alpha = 0.7;
+    this.lifeText = new Phaser.Text(this.game, 35, 7, this.lifeLabel(), this.style);
+    lifeIcon.addChild(this.lifeText);
+    this.hud.add(lifeIcon);
+
     // Ghost powerup indicator (hidden unless active)
     let ghostIcon = new Phaser.Image(this.game, 320, 2, 'ghost_icon');
     ghostIcon.alpha = 0.85;
@@ -47,6 +54,11 @@ export default class Info {
     this.speedText.text = this.speedLabel();
     this.powerText.text = this.powerLabel();
     this.delayText.text = this.delayLabel();
+    if (this.lifeText) this.lifeText.text = this.lifeLabel();
+  }
+
+  refreshLives() {
+    if (this.lifeText) this.lifeText.text = this.lifeLabel();
   }
 
   showGhost(ghostUntilMs) {
@@ -94,5 +106,9 @@ export default class Info {
 
   delayLabel() {
     return `${this.player.delay / 1000} sec.`
+  }
+
+  lifeLabel() {
+    return `x ${this.player.lives || 0}`
   }
 }

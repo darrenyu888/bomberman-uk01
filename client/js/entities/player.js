@@ -1,7 +1,8 @@
 import {
   PING, TILE_SIZE, MAX_SPEED, STEP_SPEED, INITIAL_SPEED, SPEED, POWER, DELAY,
   MIN_DELAY, STEP_DELAY, INITIAL_DELAY, INITIAL_POWER, STEP_POWER,
-  SHIELD, REMOTE, KICK, GHOST, SPOIL_DISEASE, SHIELD_DURATION_MS, GHOST_DURATION_MS
+  SHIELD, REMOTE, KICK, GHOST, LIFE, PASSWALL, REVERSE, SPOIL_DISEASE,
+  SHIELD_DURATION_MS, GHOST_DURATION_MS
 } from '../utils/constants';
 
 import Info from './info';
@@ -29,6 +30,10 @@ export default class Player extends Phaser.Sprite {
     this.hasRemote = false;
     this.hasKick = false;
     this.diseaseUntil = 0; // Client-side tracking
+    this.passwallUntil = 0;
+    this.reverseUntil = 0;
+    this.lives = 3;
+    this.maxLives = 5;
 
     this.game.add.existing(this);
     this.game.physics.arcade.enable(this);
@@ -93,10 +98,16 @@ export default class Player extends Phaser.Sprite {
 
     const effectiveSpeed = this.speed * (this.tileSpeedMultiplier || 1.0);
 
-    const left  = this.leftKey.isDown  || (this.aKey && this.aKey.isDown) || this.touchLeft;
-    const right = this.rightKey.isDown || (this.dKey && this.dKey.isDown) || this.touchRight;
-    const up    = this.upKey.isDown    || (this.wKey && this.wKey.isDown) || this.touchUp;
-    const down  = this.downKey.isDown  || (this.sKey && this.sKey.isDown) || this.touchDown;
+    let left  = this.leftKey.isDown  || (this.aKey && this.aKey.isDown) || this.touchLeft;
+    let right = this.rightKey.isDown || (this.dKey && this.dKey.isDown) || this.touchRight;
+    let up    = this.upKey.isDown    || (this.wKey && this.wKey.isDown) || this.touchUp;
+    let down  = this.downKey.isDown  || (this.sKey && this.sKey.isDown) || this.touchDown;
+
+    // Reverse controls effect
+    if (this.isReversed && this.isReversed()) {
+      const l = left, r = right, u = up, d = down;
+      left = r; right = l; up = d; down = u;
+    }
 
     if (left){
       this.body.velocity.x = -effectiveSpeed;
@@ -168,6 +179,10 @@ export default class Player extends Phaser.Sprite {
     if ( spoil_type === KICK ){ this.enableKick() }
     if ( spoil_type === GHOST ){ this.activateGhost() }
     if ( spoil_type === SPOIL_DISEASE ){ this.infectDisease() }
+
+    if ( spoil_type === LIFE ){ this.gainLife() }
+    if ( spoil_type === PASSWALL ){ this.activatePassWall() }
+    if ( spoil_type === REVERSE ){ this.activateReverse() }
   }
 
   isShielded() {
@@ -345,13 +360,50 @@ export default class Player extends Phaser.Sprite {
     this.tint = 0x55ff55; // Toxic Green
 
     this.game.time.events.add(20000, () => {
-      if (!this.isShielded() && !this.isGhosted()) {
+      if (!this.isShielded() && !this.isGhosted() && !this.isPassWalled() && !this.isReversed()) {
         this.tint = 0xffffff;
       }
     });
 
-    // Reuse a notification icon (or use generic bad one)
     new SpoilNotification({ game: this.game, asset: 'disease_icon', x: this.position.x, y: this.position.y });
+  }
+
+  gainLife() {
+    this.lives = Math.min(this.maxLives || 5, (this.lives || 0) + 1);
+    if (this.info && this.info.refreshLives) this.info.refreshLives();
+    try { new SpoilNotification({ game: this.game, asset: 'placeholder_power', x: this.position.x, y: this.position.y }); } catch (_) {}
+  }
+
+  activatePassWall() {
+    this.passwallUntil = this.game.time.now + 10000;
+    // Visual: cyan tint
+    this.tint = 0x66f7ff;
+    this.game.time.events.add(10000, () => {
+      if (!this.isShielded() && !this.isGhosted() && !this.isReversed() && !this.isDiseased()) {
+        this.tint = 0xffffff;
+      }
+    });
+    if (this.info && this.info.showPassWall) this.info.showPassWall(this.passwallUntil);
+  }
+
+  isPassWalled() {
+    return this.passwallUntil && this.game.time.now < this.passwallUntil;
+  }
+
+  activateReverse() {
+    this.reverseUntil = this.game.time.now + 8000;
+    // Visual: orange tint
+    this.tint = 0xffcc66;
+    this.game.time.events.add(8000, () => {
+      if (!this.isShielded() && !this.isGhosted() && !this.isPassWalled() && !this.isDiseased()) {
+        this.tint = 0xffffff;
+      }
+    });
+    if (this.info && this.info.showReverse) this.info.showReverse(this.reverseUntil);
+  }
+
+  isReversed() {
+    return this.reverseUntil && this.game.time.now < this.reverseUntil;
   }
 
   defineSelf(name) {

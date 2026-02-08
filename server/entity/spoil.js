@@ -1,4 +1,4 @@
-const { SPEED, POWER, DELAY, SHIELD, REMOTE, KICK, GHOST } = require('../constants');
+const { SPEED, POWER, DELAY, SHIELD, REMOTE, KICK, GHOST, DISEASE, LIFE, PASSWALL, REVERSE } = require('../constants');
 
 const { v4: uuidv4 } = require('uuid');
 
@@ -24,15 +24,18 @@ class Spoil {
       return 0; // fallback to speed
     }
 
-    // Legacy pool
+    // Default pool (classic-ish; weighted by repetition)
     const pool = [
-      0, 1, 2, // Speed, Power, Delay
-      0, 1, 2,
-      3,       // Shield
-      4,       // Remote
-      5,       // Kick
-      6,       // Ghost
-      7,       // Disease
+      SPEED, POWER, DELAY,
+      SPEED, POWER, DELAY,
+      SHIELD,
+      REMOTE,
+      KICK,
+      GHOST,
+      DISEASE,
+      LIFE,
+      PASSWALL,
+      REVERSE,
     ];
     return pool[Math.floor(Math.random() * pool.length)]
   }

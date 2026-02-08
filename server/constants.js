@@ -10,7 +10,10 @@ const SHIELD = 3;
 const REMOTE = 4;
 const KICK = 5;
 const GHOST = 6;
-const DISEASE = 7; // New Skull Item
+const DISEASE = 7; // Skull Item
+const LIFE = 8; // +1 life
+const PASSWALL = 9; // pass through destructible blocks (temporary)
+const REVERSE = 10; // reverse controls (temporary)
 
 const SHIELD_DURATION_MS = 3000;
 const GHOST_DURATION_MS = 15000;
@@ -63,6 +66,9 @@ module.exports = {
   KICK,
   GHOST,
   DISEASE,
+  LIFE,
+  PASSWALL,
+  REVERSE,
   DISEASE_TYPES,
   SHIELD_DURATION_MS,
   GHOST_DURATION_MS,

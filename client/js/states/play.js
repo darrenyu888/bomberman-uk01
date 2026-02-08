@@ -251,6 +251,14 @@ class Play extends Phaser.State {
     const p = (this.player && this.player.id === player_id) ? this.player : findFrom(player_id, this.enemies);
     if (!p) return;
 
+    // Update lives for local HUD
+    try {
+      if (this.player && this.player.id === player_id && typeof lives === 'number') {
+        this.player.lives = lives;
+        if (this.player.info && this.player.info.refreshLives) this.player.info.refreshLives();
+      }
+    } catch (_) {}
+
     // Flash effect
     if (p.flickerTimer) { this.game.time.events.remove(p.flickerTimer); }
     p.alpha = 1;
@@ -529,7 +537,7 @@ class Play extends Phaser.State {
   refreshGhostCollision() {
     if (!this.player) return;
 
-    const ghost = this.player.isGhosted && this.player.isGhosted();
+    const ghost = (this.player.isGhosted && this.player.isGhosted()) || (this.player.isPassWalled && this.player.isPassWalled());
     if (ghost === this._ghostCollisionEnabled) return;
 
     // Ghost: phase through destructible blocks ("balk") only.

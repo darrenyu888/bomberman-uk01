@@ -42,6 +42,9 @@ export const SPOIL_REMOTE = 4;
 export const SPOIL_KICK = 5;
 export const SPOIL_GHOST = 6;
 export const SPOIL_DISEASE = 7;
+export const SPOIL_LIFE = 8;
+export const SPOIL_PASSWALL = 9;
+export const SPOIL_REVERSE = 10;
 
 // Back-compat constants used by legacy client code
 export const SPEED = SPOIL_SPEED;
@@ -51,6 +54,9 @@ export const SHIELD = SPOIL_SHIELD;
 export const REMOTE = SPOIL_REMOTE;
 export const KICK = SPOIL_KICK;
 export const GHOST = SPOIL_GHOST;
+export const LIFE = SPOIL_LIFE;
+export const PASSWALL = SPOIL_PASSWALL;
+export const REVERSE = SPOIL_REVERSE;
 
 // Timed powerups
 export const SHIELD_DURATION_MS = 3000;

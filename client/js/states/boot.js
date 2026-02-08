@@ -21,7 +21,7 @@ class Boot extends Phaser.State {
     window.addEventListener('resize', refresh);
     refresh();
 
-    new Text({
+    const loadingText = new Text({
       game: this.game,
       x: this.game.world.centerX,
       y: this.game.world.centerY,
@@ -30,7 +30,27 @@ class Boot extends Phaser.State {
         font: '30px Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fill: '#FFFFFF'
       }
-    })
+    });
+
+    // Ensure CJK fonts are loaded before moving on; otherwise Phaser text may render as tofu.
+    const startNext = () => {
+      try { loadingText && loadingText.destroy && loadingText.destroy(); } catch (_) {}
+      this.state.start('Preload');
+    };
+
+    try {
+      if (document && document.fonts && document.fonts.load) {
+        Promise.all([
+          document.fonts.load('16px "Noto Sans TC"'),
+          document.fonts.load('16px "Microsoft JhengHei"'),
+          document.fonts.load('16px Arial'),
+        ]).then(startNext).catch(startNext);
+      } else {
+        startNext();
+      }
+    } catch (_) {
+      startNext();
+    }
 
     // Mobile browsers often block audio until a user gesture.
     // Unlock/resume audio on first tap/click.
@@ -48,7 +68,7 @@ class Boot extends Phaser.State {
       });
     } catch (_) {}
 
-    this.state.start('Preload');
+    // Transition to Preload happens via startNext() after fonts load.
   }
 
 }

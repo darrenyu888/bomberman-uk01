@@ -27,6 +27,19 @@ function setAuthCookie(res, req, token, maxAgeSeconds) {
   res.setHeader('Set-Cookie', cookie);
 }
 
+// --- Version / config ---
+// Expose server version info for quick deployment verification.
+let __version = { ok: true, commit: 'unknown', node: process.version, env: process.env.NODE_ENV || '' };
+try {
+  const { execSync } = require('child_process');
+  const commit = execSync('git rev-parse HEAD', { cwd: path.join(__dirname, '..'), stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  if (commit) __version.commit = commit;
+} catch (_) {}
+
+app.get('/api/version', (req, res) => {
+  res.json(__version);
+});
+
 // --- Auth / config APIs ---
 app.get('/api/config', (req, res) => {
   res.json({ googleClientId: Auth.getGoogleClientId() });

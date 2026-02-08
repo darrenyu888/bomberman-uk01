@@ -142,11 +142,12 @@ function startHordeForRunningGame({ game }) {
             const p = game.players && game.players[id];
             if (p) {
               const types = [
-                { key: 'chaser',  name: '追擊者', char: 'char_5', w: 28 },
-                { key: 'miner',   name: '工兵',   char: 'char_7', w: 18 },
-                { key: 'sniper',  name: '狙擊手', char: 'char_6', w: 18 },
-                { key: 'ghoster', name: '幽靈',   char: 'char_8', w: 18 },
-                { key: 'trapper', name: '陷阱師', char: 'char_2', w: 18 },
+                // Use distinct paper-doll cosmetics so types are visually obvious.
+                { key: 'chaser',  name: '追擊者', char: 'char_5', hat: 'hat_3',  outfit: 'outfit_6', face: 'face_2', pattern: 'pattern_3', w: 28 },
+                { key: 'miner',   name: '工兵',   char: 'char_7', hat: 'hat_6',  outfit: 'outfit_3', face: 'face_1', pattern: 'pattern_5', w: 18 },
+                { key: 'sniper',  name: '狙擊手', char: 'char_6', hat: 'hat_9',  outfit: 'outfit_8', face: 'face_4', pattern: 'pattern_2', w: 18 },
+                { key: 'ghoster', name: '幽靈',   char: 'char_8', hat: 'hat_1',  outfit: 'outfit_2', face: 'face_3', pattern: 'pattern_6', w: 18 },
+                { key: 'trapper', name: '陷阱師', char: 'char_2', hat: 'hat_8',  outfit: 'outfit_9', face: 'face_2', pattern: 'pattern_1', w: 18 },
               ];
               let total = types.reduce((s, x) => s + x.w, 0);
               let r = Math.random() * total;
@@ -157,6 +158,10 @@ function startHordeForRunningGame({ game }) {
               p.displayName = pick.name;
               p.avatarParts = p.avatarParts || {};
               p.avatarParts.character = pick.char;
+              p.avatarParts.hat = pick.hat;
+              p.avatarParts.outfit = pick.outfit;
+              p.avatarParts.face = pick.face;
+              p.avatarParts.pattern = pick.pattern;
             }
           } catch (_) {}
 

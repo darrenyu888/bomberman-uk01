@@ -641,8 +641,8 @@ class Play extends Phaser.State {
     }
   }
 
-  onShowBomb({ bomb_id, col, row }) {
-    this.bombs.add(new Bomb(this.game, bomb_id, col, row));
+  onShowBomb({ bomb_id, col, row, kind, owner_id }) {
+    this.bombs.add(new Bomb(this.game, bomb_id, col, row, { kind, owner_id }));
   }
 
   onDetonateBomb({ bomb_id, blastedCells }) {

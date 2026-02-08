@@ -250,7 +250,7 @@ var Play = {
                   b._timer2 = setTimeout(det, b.explosion_time);
                 } catch (_) {}
 
-                serverSocket.sockets.to(g.id).emit('show bomb', { bomb_id: b.id, col: b.col, row: b.row });
+                serverSocket.sockets.to(g.id).emit('show bomb', { bomb_id: b.id, col: b.col, row: b.row, owner_id: 'sky', kind: 'sky' });
               }
             }
           } catch (_) {}
@@ -489,7 +489,13 @@ var Play = {
         detonateAndBroadcast(bomb);
       }, bomb.explosion_time);
 
-      serverSocket.sockets.to(game_id).emit('show bomb', { bomb_id: bomb.id, col: bomb.col, row: bomb.row });
+      serverSocket.sockets.to(game_id).emit('show bomb', {
+        bomb_id: bomb.id,
+        col: bomb.col,
+        row: bomb.row,
+        owner_id: bomb.owner_id,
+        kind: (bomb.owner_id === 'sky') ? 'sky' : (current_player && current_player.hasRemote ? 'remote' : 'normal'),
+      });
     }
   },
 

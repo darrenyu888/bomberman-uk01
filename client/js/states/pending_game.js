@@ -36,7 +36,7 @@ class PendingGame extends Phaser.State {
       y: this.game.world.centerY - 215,
       text: '',
       style: {
-        font: '35px Areal',
+        font: '35px Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fill: '#9ec0ba',
         stroke: '#6f7975',
         strokeThickness: 3
@@ -76,7 +76,7 @@ class PendingGame extends Phaser.State {
       asset_empty: 'bomberman_head_blank',
       asset_player: 'bomberman_head_',
       style: {
-        font: '20px Areal',
+        font: '20px Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fill: '#48291c'
       }
     })

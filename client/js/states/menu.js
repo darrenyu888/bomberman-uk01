@@ -48,7 +48,7 @@ class Menu extends Phaser.State {
       x: this.game.world.centerX - 220,
       y: 160,
       style: {
-        font: '35px Areal',
+        font: '35px Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fill: '#efefef',
         stroke: '#ae743a',
         strokeThickness: 3

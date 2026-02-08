@@ -124,7 +124,7 @@ export default class EnemyPlayer extends Phaser.Sprite {
       y: -10,
       text: name,
       style: {
-        font: '14px Areal',
+        font: '14px Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fill: '#FFFFFF',
           stroke: '#000000',
           strokeThickness: 3

@@ -361,7 +361,7 @@ export default class Player extends Phaser.Sprite {
       y: -10,
       text: `\u272E ${name} \u272E`,
       style: {
-        font: '15px Areal',
+        font: '15px Arial, "Noto Sans TC", "Microsoft JhengHei", sans-serif',
         fill: '#FFFFFF',
           stroke: '#000000',
           strokeThickness: 3

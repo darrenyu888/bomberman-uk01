@@ -11,7 +11,21 @@ const Store = require('./store');
 
 const PORT = process.env.PORT || 3000;
 
+// Behind nginx reverse proxy
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '1mb' }));
+
+function setAuthCookie(res, req, token, maxAgeSeconds) {
+  // Only set Secure when the request is actually over HTTPS.
+  // (nginx terminates TLS and forwards X-Forwarded-Proto)
+  const xfProto = (req.headers['x-forwarded-proto'] || '').toString().split(',')[0].trim().toLowerCase();
+  const isHttps = xfProto === 'https' || req.secure === true;
+
+  let cookie = `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+  if (isHttps) cookie += '; Secure';
+  res.setHeader('Set-Cookie', cookie);
+}
 
 // --- Auth / config APIs ---
 app.get('/api/config', (req, res) => {
@@ -31,7 +45,7 @@ app.post('/auth/google', async (req, res) => {
     const { user, stats } = Store.getOrCreateUserFromGoogle(info);
 
     const token = Auth.signAuthToken({ userId: user.id });
-    res.setHeader('Set-Cookie', `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
+    setAuthCookie(res, req, token, (60 * 60 * 24 * 30));
 
     res.json({ ok: true, user: { id: user.id, displayName: user.displayName }, stats });
   } catch (e) {
@@ -41,7 +55,8 @@ app.post('/auth/google', async (req, res) => {
 });
 
 app.post('/auth/logout', (req, res) => {
-  res.setHeader('Set-Cookie', 'auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  // Expire cookie; keep attributes consistent (and Secure when HTTPS)
+  setAuthCookie(res, req, '', 0);
   res.json({ ok: true });
 });
 

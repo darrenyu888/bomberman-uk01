@@ -10,30 +10,67 @@ export default class Bomb extends Phaser.Sprite {
 
     // Visual variants by kind (no extra spritesheet needed)
     this.kind = (meta && meta.kind) ? meta.kind : 'normal';
+    this.power = (meta && typeof meta.power === 'number') ? meta.power : null;
+
+    // Base tint
     if (this.kind === 'sky') {
-      // Sudden death sky bomb: more aggressive color
       this.tint = 0xff5544;
     } else if (this.kind === 'remote') {
-      // Remote-enabled player: blue-ish bomb
       this.tint = 0x66ccff;
+    } else if (this.kind === 'disease') {
+      this.tint = 0x55ff55;
     }
+
+    // High-power bombs: slightly larger + faster pulse
+    try {
+      const p = (this.power == null) ? 1 : this.power;
+      if (p >= 4) {
+        this.scale.setTo(0.85);
+        this._big = true;
+      }
+    } catch (_) {}
 
     // Optional label overlay (lightweight, helps differentiate)
     try {
-      if (this.kind === 'remote') {
-        const t = this.game.add.text(0, 0, 'R', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+      const mk = (txt, style) => {
+        const t = this.game.add.text(0, 0, txt, style);
         t.anchor.setTo(0.5);
         t.x = 0;
         t.y = -2;
         this.addChild(t);
-      }
-      if (this.kind === 'sky') {
-        const t = this.game.add.text(0, 0, '!', { font: '16px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+        return t;
+      };
+
+      if (this.kind === 'remote') mk('R', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+      if (this.kind === 'sky') mk('!', { font: '16px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+      if (this.kind === 'disease') mk('☠', { font: '14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+
+      if (this._big) mk('P', { font: '12px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
+    } catch (_) {}
+
+    // Kicked arrow overlay
+    this._kickedArrow = null;
+    this.setKicked = (dir) => {
+      try {
+        if (this._kickedArrow) { this._kickedArrow.destroy(); this._kickedArrow = null; }
+        const map = { left: '←', right: '→', up: '↑', down: '↓' };
+        const arrow = map[dir] || '→';
+        const t = this.game.add.text(0, 0, arrow, { font: '18px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 3 });
         t.anchor.setTo(0.5);
         t.x = 0;
-        t.y = -2;
+        t.y = 14;
         this.addChild(t);
-      }
+        this._kickedArrow = t;
+        // auto-hide
+        this.game.time.events.add(900, () => {
+          try { if (this._kickedArrow) { this._kickedArrow.destroy(); this._kickedArrow = null; } } catch (_) {}
+        });
+      } catch (_) {}
+    };
+
+    // If bomb was already kicked at spawn
+    try {
+      if (meta && meta.kicked && meta.dir) this.setKicked(meta.dir);
     } catch (_) {}
     this.scale.setTo(0.7);
     this.anchor.setTo(0.5);

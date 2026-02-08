@@ -335,7 +335,7 @@ class Play extends Phaser.State {
     clientSocket.emit('kick bomb', { bomb_id: bomb.id, dir });
   }
 
-  onMoveBomb({ bomb_id, col, row }) {
+  onMoveBomb({ bomb_id, col, row, kicked, dir }) {
     const b = findFrom(bomb_id, this.bombs);
     if (!b) return;
 
@@ -346,6 +346,11 @@ class Play extends Phaser.State {
     if (b.body) {
       b.body.reset(x, y);
     }
+
+    // Visual: show kicked arrow briefly
+    try {
+      if (kicked && b.setKicked) b.setKicked(dir);
+    } catch (_) {}
   }
 
   stopAnimationLoop() {
@@ -641,8 +646,8 @@ class Play extends Phaser.State {
     }
   }
 
-  onShowBomb({ bomb_id, col, row, kind, owner_id }) {
-    this.bombs.add(new Bomb(this.game, bomb_id, col, row, { kind, owner_id }));
+  onShowBomb({ bomb_id, col, row, kind, owner_id, power, kicked, dir }) {
+    this.bombs.add(new Bomb(this.game, bomb_id, col, row, { kind, owner_id, power, kicked, dir }));
   }
 
   onDetonateBomb({ bomb_id, blastedCells }) {

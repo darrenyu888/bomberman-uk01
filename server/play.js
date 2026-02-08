@@ -250,7 +250,7 @@ var Play = {
                   b._timer2 = setTimeout(det, b.explosion_time);
                 } catch (_) {}
 
-                serverSocket.sockets.to(g.id).emit('show bomb', { bomb_id: b.id, col: b.col, row: b.row, owner_id: 'sky', kind: 'sky' });
+                serverSocket.sockets.to(g.id).emit('show bomb', { bomb_id: b.id, col: b.col, row: b.row, owner_id: 'sky', kind: 'sky', power: b.power, kicked: false });
               }
             }
           } catch (_) {}
@@ -489,12 +489,20 @@ var Play = {
         detonateAndBroadcast(bomb);
       }, bomb.explosion_time);
 
+      const now = Date.now();
+      const isDiseased = (current_player && current_player.disease_until && now < current_player.disease_until);
+      const kind = (bomb.owner_id === 'sky')
+        ? 'sky'
+        : (isDiseased ? 'disease' : (current_player && current_player.hasRemote ? 'remote' : 'normal'));
+
       serverSocket.sockets.to(game_id).emit('show bomb', {
         bomb_id: bomb.id,
         col: bomb.col,
         row: bomb.row,
         owner_id: bomb.owner_id,
-        kind: (bomb.owner_id === 'sky') ? 'sky' : (current_player && current_player.hasRemote ? 'remote' : 'normal'),
+        kind,
+        power: bomb.power,
+        kicked: false,
       });
     }
   },
@@ -547,8 +555,11 @@ var Play = {
 
     bomb.col = targetCol;
     bomb.row = targetRow;
+    bomb.kicked = true;
+    bomb.kicked_at = Date.now();
+    bomb.kick_dir = dir;
 
-    serverSocket.sockets.to(game_id).emit('move bomb', { bomb_id: bomb.id, col: bomb.col, row: bomb.row });
+    serverSocket.sockets.to(game_id).emit('move bomb', { bomb_id: bomb.id, col: bomb.col, row: bomb.row, kicked: true, dir });
   },
 
   onPickUpSpoil: function({ spoil_id }) {

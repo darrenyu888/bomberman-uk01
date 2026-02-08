@@ -1,4 +1,4 @@
-import { SPEED, POWER, DELAY, SHIELD, REMOTE, KICK, GHOST, TILE_SIZE } from '../utils/constants';
+import { SPOIL_SPEED, SPOIL_POWER, SPOIL_DELAY, SPOIL_SHIELD, SPOIL_REMOTE, SPOIL_KICK, SPOIL_GHOST, SPOIL_DISEASE, TILE_SIZE } from '../utils/constants';
 
 export default class Spoil extends Phaser.Sprite {
 
@@ -6,15 +6,33 @@ export default class Spoil extends Phaser.Sprite {
 
     // UK01: spoil_tileset now contains 7 frames (0..6) matching constants
     let frame = 0;
-    if (spoil.spoil_type === SPEED) frame = 0;
-    if (spoil.spoil_type === POWER) frame = 1;
-    if (spoil.spoil_type === DELAY) frame = 2;
-    if (spoil.spoil_type === SHIELD) frame = 3;
-    if (spoil.spoil_type === REMOTE) frame = 4;
-    if (spoil.spoil_type === KICK) frame = 5;
-    if (spoil.spoil_type === GHOST) frame = 6;
+    if (spoil.spoil_type === SPOIL_SPEED) frame = 0;
+    if (spoil.spoil_type === SPOIL_POWER) frame = 1;
+    if (spoil.spoil_type === SPOIL_DELAY) frame = 2;
+    if (spoil.spoil_type === SPOIL_SHIELD) frame = 3;
+    if (spoil.spoil_type === SPOIL_REMOTE) frame = 4;
+    if (spoil.spoil_type === SPOIL_KICK) frame = 5;
+    if (spoil.spoil_type === SPOIL_GHOST) frame = 6;
+    
+    // For Disease (7), we don't have frame 7 in tileset yet. 
+    // Overlay the SVG icon or assume spritesheet updated.
+    // For now, reuse frame 2 (Delay) but tint it Green/Purple.
+    if (spoil.spoil_type === 7) { // SPOIL_DISEASE
+       frame = 2; 
+    }
 
     super(game, (spoil.col * TILE_SIZE), (spoil.row * TILE_SIZE), 'spoil_tileset', frame);
+
+    if (spoil.spoil_type === 7) {
+       this.tint = 0x55ff00; // Toxic Green tint for Disease
+       // Optional: Add skull icon overlay
+       try {
+         const skull = this.game.add.sprite(0, 0, 'disease_icon');
+         skull.width = 35; skull.height = 35;
+         skull.anchor.setTo(0,0);
+         this.addChild(skull);
+       } catch(_) {}
+    }
 
     this.id = spoil.id
 

@@ -39,6 +39,18 @@ class Game {
     this.shadow_map   = this.createMapData();
     this.spoils       = new Map();
     this.bombs        = new Map();
+
+    // Spoil generation weights
+    this.spoilWeights = [
+      { type: 0, weight: 35 }, // Speed
+      { type: 1, weight: 35 }, // Power
+      { type: 2, weight: 15 }, // Delay
+      { type: 3, weight: 5 },  // Shield
+      { type: 4, weight: 5 },  // Remote
+      { type: 5, weight: 5 },  // Kick
+      { type: 6, weight: 3 },  // Ghost
+      { type: 7, weight: 8 },  // Disease (Skull)
+    ];
   }
 
   addPlayer(id) {

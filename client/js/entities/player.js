@@ -1,7 +1,7 @@
 import {
   PING, TILE_SIZE, MAX_SPEED, STEP_SPEED, INITIAL_SPEED, SPEED, POWER, DELAY,
   MIN_DELAY, STEP_DELAY, INITIAL_DELAY, INITIAL_POWER, STEP_POWER,
-  SHIELD, REMOTE, KICK, GHOST, SHIELD_DURATION_MS, GHOST_DURATION_MS
+  SHIELD, REMOTE, KICK, GHOST, SPOIL_DISEASE, SHIELD_DURATION_MS, GHOST_DURATION_MS
 } from '../utils/constants';
 
 import Info from './info';
@@ -28,6 +28,7 @@ export default class Player extends Phaser.Sprite {
     this.ghostUntil = 0;
     this.hasRemote = false;
     this.hasKick = false;
+    this.diseaseUntil = 0; // Client-side tracking
 
     this.game.add.existing(this);
     this.game.physics.arcade.enable(this);
@@ -166,6 +167,7 @@ export default class Player extends Phaser.Sprite {
     if ( spoil_type === REMOTE ){ this.enableRemote() }
     if ( spoil_type === KICK ){ this.enableKick() }
     if ( spoil_type === GHOST ){ this.activateGhost() }
+    if ( spoil_type === SPOIL_DISEASE ){ this.infectDisease() }
   }
 
   isShielded() {
@@ -174,6 +176,10 @@ export default class Player extends Phaser.Sprite {
 
   isGhosted() {
     return this.ghostUntil && this.game.time.now < this.ghostUntil;
+  }
+
+  isDiseased() {
+    return this.diseaseUntil && this.game.time.now < this.diseaseUntil;
   }
 
   increaseSpeed(){
@@ -332,6 +338,20 @@ export default class Player extends Phaser.Sprite {
     });
 
     new SpoilNotification({ game: this.game, asset: 'ghost_icon', x: this.position.x, y: this.position.y })
+  }
+
+  infectDisease() {
+    this.diseaseUntil = this.game.time.now + 20000;
+    this.tint = 0x55ff55; // Toxic Green
+
+    this.game.time.events.add(20000, () => {
+      if (!this.isShielded() && !this.isGhosted()) {
+        this.tint = 0xffffff;
+      }
+    });
+
+    // Reuse a notification icon (or use generic bad one)
+    new SpoilNotification({ game: this.game, asset: 'disease_icon', x: this.position.x, y: this.position.y });
   }
 
   defineSelf(name) {

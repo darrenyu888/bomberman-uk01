@@ -78,7 +78,7 @@ class Bomb {
     var randomNumber = Math.floor(Math.random() * 100)
 
     if (randomNumber < SPOIL_CHANCE) {
-      let spoil = new Spoil(row, col)
+      let spoil = new Spoil(row, col, this.game.spoilWeights)
       this.game.addSpoil(spoil)
       return spoil
     }

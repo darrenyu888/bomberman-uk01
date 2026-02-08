@@ -73,6 +73,12 @@ class Preload extends Phaser.State {
     this.load.image('placeholder_speed', 'images/game/placeholder_speed.png');
     this.load.image('placeholder_time',  'images/game/placeholder_time.png');
 
+    this.load.image('disease_icon',      'images/game/disease_icon.svg');
+    this.load.image('disease_tint',      'images/game/disease_icon.svg'); // Reuse icon for tint if needed
+
+    // Lighting / Atmosphere
+    this.load.image('light_mask',        'images/game/light_mask.svg');
+
     // Special tiles FX
     this.load.spritesheet('portal_fx', 'images/game/portal_fx.png', 35, 35);
     this.load.spritesheet('speed_fx',  'images/game/speed_fx.png', 35, 35);

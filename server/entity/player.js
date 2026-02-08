@@ -14,8 +14,11 @@ const {
   REMOTE,
   KICK,
   GHOST,
+  DISEASE,
+  DISEASE_TYPES,
   SHIELD_DURATION_MS,
   GHOST_DURATION_MS,
+  DISEASE_DURATION_MS,
 } = require('../constants');
 
 class Player {
@@ -37,6 +40,10 @@ class Player {
     this.hasRemote = false;
     this.hasKick = false;
     this.ghost_until = 0;
+    
+    // Disease (Skull)
+    this.disease_until = 0;
+    this.disease_type = -1; // -1: None
 
     this.lives = 3; // 3 Lives System
 
@@ -81,6 +88,14 @@ class Player {
 
     if (spoil_type === GHOST) {
       this.ghost_until = Date.now() + GHOST_DURATION_MS;
+      return;
+    }
+
+    if (spoil_type === DISEASE) {
+      this.disease_until = Date.now() + DISEASE_DURATION_MS;
+      // Pick random disease
+      const types = Object.values(DISEASE_TYPES);
+      this.disease_type = types[Math.floor(Math.random() * types.length)];
       return;
     }
   }

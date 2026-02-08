@@ -57,6 +57,21 @@ class Play extends Phaser.State {
   }
 
   update() {
+    // Lighting follow
+    if (this.player && this.darkness) {
+       this.darkness.x = this.player.x;
+       this.darkness.y = this.player.y;
+       
+       // Force Z-order (Objects pop out of darkness)
+       this.game.world.bringToTop(this.darkness);
+       this.game.world.bringToTop(this.spoils);
+       this.game.world.bringToTop(this.bombs);
+       this.game.world.bringToTop(this.bones);
+       this.game.world.bringToTop(this.blasts); // Fire is bright
+       this.game.world.bringToTop(this.enemies);
+       if (this.player) this.game.world.bringToTop(this.player);
+    }
+
     this.refreshGhostCollision();
 
     this.game.physics.arcade.collide(this.player, this.blockLayer);
@@ -144,6 +159,14 @@ class Play extends Phaser.State {
     this.enemies = this.game.add.group();
 
     this.game.physics.arcade.enable(this.blockLayer);
+
+    // --- Lighting ---
+    this.darkness = this.game.add.sprite(0, 0, 'light_mask');
+    this.darkness.anchor.setTo(0.5);
+    this.darkness.width = 1600;
+    this.darkness.height = 1600;
+    this.darkness.alpha = 0.82;
+    this.darkness.blendMode = Phaser.blendModes.MULTIPLY;
   }
 
   createPlayers() {

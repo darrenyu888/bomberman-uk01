@@ -821,7 +821,10 @@ function createBotInterval({ game, botId, stateMap, playModule }) {
       if (spoil) {
         try {
           game.deleteSpoil(spoil.id);
-          // p.pickSpoil(spoil.spoil_type); // Monsters don't get buffs, they just destroy items
+
+          // Bots/NPCs now consume spoils to get stronger (classic feel)
+          try { p.pickSpoil(spoil.spoil_type); } catch (_) {}
+
           global.serverSocket.sockets.to(game.id).emit('spoil was picked', {
             player_id: botId,
             spoil_id: spoil.id,

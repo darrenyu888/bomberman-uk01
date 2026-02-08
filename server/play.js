@@ -160,7 +160,7 @@ var Play = {
 
         // Sudden death: drop walls + random bombs from sky
         clearSuddenDeathInterval(game.id);
-        const startAt = Date.now() + (MAX_MS - 70000); // last 70s
+        const startAt = Date.now() + (MAX_MS - 110000); // last 110s (harder shrink)
         const edgePick = (g, n) => {
           const drops = [];
           try {
@@ -217,8 +217,8 @@ var Play = {
             g.suddenDeathLevel = Math.min(8, (Number(g.suddenDeathLevel) || 0) + 1);
             const lvl = Number(g.suddenDeathLevel) || 1;
 
-            // 1) Walls
-            const wallDrops = edgePick(g, Math.min(12, 3 + lvl));
+            // 1) Walls (harder)
+            const wallDrops = edgePick(g, Math.min(20, 6 + (2 * lvl)));
             if (wallDrops.length) {
               for (const d of wallDrops) {
                 try { g.shadow_map[d.row][d.col] = NON_DESTRUCTIBLE_CELL; } catch (_) {}
@@ -229,14 +229,14 @@ var Play = {
               });
             }
 
-            // 2) Sky bombs (small chance each tick)
-            if (Math.random() < 0.65) {
-              const bombDrops = edgePick(g, Math.min(3, 1 + Math.floor(lvl / 2)));
+            // 2) Sky bombs (harder)
+            if (Math.random() < 0.88) {
+              const bombDrops = edgePick(g, Math.min(5, 2 + Math.floor(lvl / 2)));
               for (const d of bombDrops) {
                 const b = g.addBomb({ col: d.col, row: d.row, power: 2, owner_id: 'sky' });
                 if (!b) continue;
                 b.created_at = Date.now();
-                b.explosion_time = 1200;
+                b.explosion_time = 900;
                 // Schedule detonation using bomb entity (server-authoritative)
                 try {
                   const det = () => {
@@ -254,7 +254,7 @@ var Play = {
               }
             }
           } catch (_) {}
-        }, 4500);
+        }, 3200);
 
         suddenDeathIntervalsByGameId.set(game.id, interval);
       } catch (_) {}
